@@ -54,6 +54,7 @@ app.use('/api/preorders', require('../src/routes/preorder.routes'));
 app.use('/api/recurring-expenses', require('../src/routes/recurring.routes'));
 app.use('/api/commissions', require('../src/routes/commission.routes'));
 app.use('/api/analytics', require('../src/routes/analytics.routes'));
+app.use('/api/superadmin', require('../src/routes/superadmin.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {
