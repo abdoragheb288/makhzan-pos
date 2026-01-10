@@ -99,8 +99,9 @@ async function main() {
     // Create manager and cashier
     const manager = await prisma.user.upsert({
         where: { email: 'manager@makhzan.com' },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'أحمد محمد',
             email: 'manager@makhzan.com',
             password: hashedPassword,
@@ -112,8 +113,9 @@ async function main() {
 
     const cashier = await prisma.user.upsert({
         where: { email: 'cashier@makhzan.com' },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'محمد علي',
             email: 'cashier@makhzan.com',
             password: hashedPassword,
@@ -127,8 +129,9 @@ async function main() {
     // Create categories
     const menCategory = await prisma.category.upsert({
         where: { id: 1 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'ملابس رجالي',
             description: 'جميع أنواع الملابس الرجالية',
         },
@@ -136,8 +139,9 @@ async function main() {
 
     const womenCategory = await prisma.category.upsert({
         where: { id: 2 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'ملابس حريمي',
             description: 'جميع أنواع الملابس الحريمية',
         },
@@ -145,8 +149,9 @@ async function main() {
 
     const kidsCategory = await prisma.category.upsert({
         where: { id: 3 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'ملابس أطفال',
             description: 'ملابس الأطفال ولاد وبنات',
         },
@@ -155,8 +160,9 @@ async function main() {
     // Subcategories - use upsert to avoid duplicates
     const menShirts = await prisma.category.upsert({
         where: { id: 4 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'قمصان رجالي',
             parentId: menCategory.id,
         },
@@ -164,8 +170,9 @@ async function main() {
 
     const menPants = await prisma.category.upsert({
         where: { id: 5 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'بناطيل رجالي',
             parentId: menCategory.id,
         },
@@ -173,8 +180,9 @@ async function main() {
 
     const womenDresses = await prisma.category.upsert({
         where: { id: 6 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'فساتين',
             parentId: womenCategory.id,
         },
@@ -184,6 +192,7 @@ async function main() {
     // Create products with variants
     const shirt1 = await prisma.product.create({
         data: {
+            tenantId: defaultTenant.id,
             name: 'قميص كلاسيكي أبيض',
             sku: 'MEN-SHT-001',
             barcode: '1234567890123',
@@ -205,6 +214,7 @@ async function main() {
 
     const shirt2 = await prisma.product.create({
         data: {
+            tenantId: defaultTenant.id,
             name: 'قميص كاجوال أزرق',
             sku: 'MEN-SHT-002',
             barcode: '1234567890124',
@@ -225,6 +235,7 @@ async function main() {
 
     const pants1 = await prisma.product.create({
         data: {
+            tenantId: defaultTenant.id,
             name: 'بنطلون جينز كلاسيك',
             sku: 'MEN-PNT-001',
             barcode: '1234567890125',
@@ -245,6 +256,7 @@ async function main() {
 
     const dress1 = await prisma.product.create({
         data: {
+            tenantId: defaultTenant.id,
             name: 'فستان سواريه أسود',
             sku: 'WOM-DRS-001',
             barcode: '1234567890126',
@@ -305,6 +317,7 @@ async function main() {
     // Create suppliers
     const supplier1 = await prisma.supplier.create({
         data: {
+            tenantId: defaultTenant.id,
             name: 'مصنع النيل للملابس',
             phone: '01500000000',
             email: 'nile@factory.com',
@@ -314,6 +327,7 @@ async function main() {
 
     const supplier2 = await prisma.supplier.create({
         data: {
+            tenantId: defaultTenant.id,
             name: 'شركة الدلتا للتصنيع',
             phone: '01600000000',
             email: 'delta@textiles.com',
