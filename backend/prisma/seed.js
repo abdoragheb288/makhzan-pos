@@ -6,24 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 بدء تهيئة قاعدة البيانات...');
 
-    // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 12);
-
-    const admin = await prisma.user.upsert({
-        where: { email: 'admin@makhzan.com' },
-        update: { branchId: 1 },
-        create: {
-            name: 'مدير النظام',
-            email: 'admin@makhzan.com',
-            password: hashedPassword,
-            phone: '01000000000',
-            role: 'ADMIN',
-            branchId: 1,
-        },
-    });
-    console.log('✅ تم إنشاء المستخدم الرئيسي:', admin.email);
-
-    // Create main warehouse
+    // Create main warehouse FIRST
     const warehouse = await prisma.branch.upsert({
         where: { id: 1 },
         update: {},
@@ -58,6 +41,25 @@ async function main() {
             isWarehouse: false,
         },
     });
+    console.log('✅ تم إنشاء الفروع');
+
+    // Create admin user AFTER branches
+    const hashedPassword = await bcrypt.hash('admin123', 12);
+
+    const admin = await prisma.user.upsert({
+        where: { email: 'admin@makhzan.com' },
+        update: { branchId: warehouse.id },
+        create: {
+            name: 'مدير النظام',
+            email: 'admin@makhzan.com',
+            password: hashedPassword,
+            phone: '01000000000',
+            role: 'ADMIN',
+            branchId: warehouse.id,
+            permissions: [],
+        },
+    });
+    console.log('✅ تم إنشاء المستخدم الرئيسي:', admin.email);
     console.log('✅ تم إنشاء الفروع');
 
     // Create manager and cashier

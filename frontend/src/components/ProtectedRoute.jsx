@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store';
+import { useEffect, useState } from 'react';
 
 // Permission to default path mapping for each permission type
 const PERMISSION_DEFAULT_PATHS = {
@@ -31,16 +32,34 @@ function getFirstAllowedPath(user) {
         }
     }
 
-    // Fallback: if no permissions, still try to send to POS (might be an issue with user setup)
+    // Fallback: if no permissions, still try to send to POS
     return '/pos';
 }
 
 export function ProtectedRoute({ children }) {
-    const { isAuthenticated, user } = useAuthStore();
+    const { isAuthenticated, user, token, logout } = useAuthStore();
     const location = useLocation();
+    const [isChecking, setIsChecking] = useState(true);
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+    useEffect(() => {
+        // Validate that we have both token and user
+        const storedToken = localStorage.getItem('token');
+
+        if (!storedToken || !token || !user) {
+            // Clear any stale auth state
+            logout();
+        }
+        setIsChecking(false);
+    }, [token, user, logout]);
+
+    // Show nothing while checking auth
+    if (isChecking) {
+        return null;
+    }
+
+    // Check both isAuthenticated flag AND token existence
+    if (!isAuthenticated || !token || !localStorage.getItem('token')) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     // If user is on the root path "/" and is not admin, redirect to their first allowed page
@@ -53,9 +72,10 @@ export function ProtectedRoute({ children }) {
 }
 
 export function PublicRoute({ children }) {
-    const { isAuthenticated, user } = useAuthStore();
+    const { isAuthenticated, user, token } = useAuthStore();
 
-    if (isAuthenticated) {
+    // Only redirect if truly authenticated with valid token
+    if (isAuthenticated && token && localStorage.getItem('token')) {
         const redirectPath = getFirstAllowedPath(user);
         return <Navigate to={redirectPath} replace />;
     }
