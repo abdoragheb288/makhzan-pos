@@ -7,7 +7,9 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, search, role, branchId, isActive } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        const where = {
+            tenantId: req.user.tenantId
+        };
 
         if (search) {
             where.OR = [
@@ -57,8 +59,11 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: parseInt(req.params.id) },
+        const user = await prisma.user.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                tenantId: req.user.tenantId
+            },
             select: {
                 id: true,
                 name: true,
@@ -122,6 +127,7 @@ const create = async (req, res, next) => {
                 role: role || 'CASHIER',
                 branchId: branchId ? parseInt(branchId) : null,
                 permissions: permissions || [],
+                tenantId: req.user.tenantId, // Add tenantId from authenticated user
             },
             select: {
                 id: true,
@@ -151,8 +157,11 @@ const update = async (req, res, next) => {
         const { name, email, password, phone, role, branchId, isActive, permissions } = req.body;
         const userId = parseInt(req.params.id);
 
-        const existingUser = await prisma.user.findUnique({
-            where: { id: userId },
+        const existingUser = await prisma.user.findFirst({
+            where: {
+                id: userId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!existingUser) {
@@ -224,8 +233,11 @@ const remove = async (req, res, next) => {
     try {
         const userId = parseInt(req.params.id);
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
+        const user = await prisma.user.findFirst({
+            where: {
+                id: userId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!user) {
