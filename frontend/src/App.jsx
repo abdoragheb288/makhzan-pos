@@ -7,6 +7,7 @@ import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import {
   Dashboard,
   Login,
+  TenantRegister,
   POS,
   Products,
   Categories,
@@ -54,6 +55,14 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <TenantRegister />
+              </PublicRoute>
+            }
+          />
           <Route
             path="/login"
             element={

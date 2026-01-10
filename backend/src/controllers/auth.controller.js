@@ -16,6 +16,14 @@ const login = async (req, res, next) => {
                         isWarehouse: true,
                     },
                 },
+                tenant: {
+                    select: {
+                        id: true,
+                        isActive: true,
+                        status: true,
+                        name: true,
+                    }
+                }
             },
         });
 
@@ -33,6 +41,14 @@ const login = async (req, res, next) => {
             });
         }
 
+        // Check Tenant Status
+        if (user.tenant && (!user.tenant.isActive || user.tenant.status === 'SUSPENDED')) {
+            return res.status(401).json({
+                success: false,
+                message: 'تم إيقاف حساب الشركة. يرجى الاتصال بالإدارة.',
+            });
+        }
+
         const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
@@ -43,7 +59,7 @@ const login = async (req, res, next) => {
         }
 
         const token = jwt.sign(
-            { userId: user.id, role: user.role },
+            { userId: user.id, role: user.role, tenantId: user.tenantId },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
         );
@@ -58,6 +74,8 @@ const login = async (req, res, next) => {
                     name: user.name,
                     email: user.email,
                     role: user.role,
+                    tenantId: user.tenantId,
+                    tenantName: user.tenant?.name,
                     branchId: user.branchId,
                     branch: user.branch,
                     permissions: user.permissions || [],
