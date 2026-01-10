@@ -32,6 +32,13 @@ import './styles/globals.css';
 import './styles/components.css';
 import './styles/layout.css';
 
+// SuperAdmin Pages
+import SuperAdminLogin from './pages/superadmin/SuperAdminLogin';
+import SuperAdminLayout from './pages/superadmin/SuperAdminLayout';
+import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
+import TenantsPage from './pages/superadmin/TenantsPage';
+import SubscriptionsPage from './pages/superadmin/SubscriptionsPage';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -85,6 +92,14 @@ function App() {
             <Route path="installments" element={<Installments />} />
             <Route path="preorders" element={<PreOrders />} />
             <Route path="analytics" element={<Analytics />} />
+          </Route>
+
+          {/* Super Admin Routes */}
+          <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+          <Route path="/superadmin" element={<SuperAdminLayout />}>
+            <Route path="dashboard" element={<SuperAdminDashboard />} />
+            <Route path="tenants" element={<TenantsPage />} />
+            <Route path="subscriptions" element={<SubscriptionsPage />} />
           </Route>
 
           {/* 404 */}

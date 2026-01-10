@@ -6,11 +6,42 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 بدء تهيئة قاعدة البيانات...');
 
+    // Create Super Admin FIRST
+    const superAdminPassword = await bcrypt.hash('superadmin123', 12);
+    const superAdmin = await prisma.superAdmin.upsert({
+        where: { email: 'superadmin@makhzan.com' },
+        update: {},
+        create: {
+            name: 'Super Admin',
+            email: 'superadmin@makhzan.com',
+            password: superAdminPassword,
+        },
+    });
+    console.log('✅ تم إنشاء Super Admin:', superAdmin.email);
+
+    // Create default Tenant
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+
+    const defaultTenant = await prisma.tenant.upsert({
+        where: { email: 'demo@makhzan.com' },
+        update: {},
+        create: {
+            name: 'شركة تجريبية',
+            email: 'demo@makhzan.com',
+            phone: '01000000000',
+            status: 'TRIAL',
+            trialEndsAt,
+        },
+    });
+    console.log('✅ تم إنشاء المشترك الافتراضي:', defaultTenant.name);
+
     // Create main warehouse FIRST
     const warehouse = await prisma.branch.upsert({
         where: { id: 1 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'المخزن الرئيسي',
             address: 'شارع التحرير، القاهرة',
             phone: '02-12345678',
@@ -22,8 +53,9 @@ async function main() {
     // Create branches
     const branch1 = await prisma.branch.upsert({
         where: { id: 2 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'فرع المعادي',
             address: 'شارع 9، المعادي',
             phone: '02-23456789',
@@ -33,8 +65,9 @@ async function main() {
 
     const branch2 = await prisma.branch.upsert({
         where: { id: 3 },
-        update: {},
+        update: { tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'فرع مدينة نصر',
             address: 'شارع عباس العقاد',
             phone: '02-34567890',
@@ -48,8 +81,9 @@ async function main() {
 
     const admin = await prisma.user.upsert({
         where: { email: 'admin@makhzan.com' },
-        update: { branchId: warehouse.id },
+        update: { branchId: warehouse.id, tenantId: defaultTenant.id },
         create: {
+            tenantId: defaultTenant.id,
             name: 'مدير النظام',
             email: 'admin@makhzan.com',
             password: hashedPassword,
