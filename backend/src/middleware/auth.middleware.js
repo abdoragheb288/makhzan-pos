@@ -23,6 +23,7 @@ const auth = async (req, res, next) => {
                 name: true,
                 email: true,
                 role: true,
+                tenantId: true,
                 branchId: true,
                 isActive: true,
                 branch: {
