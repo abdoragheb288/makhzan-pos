@@ -12,7 +12,14 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        // Check if this is a superadmin request
+        const isSuperAdminRequest = config.url?.includes('/superadmin');
+
+        // Use appropriate token
+        const token = isSuperAdminRequest
+            ? localStorage.getItem('superAdminToken')
+            : localStorage.getItem('token');
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -28,9 +35,25 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Check if this was a superadmin request
+            const isSuperAdminRequest = error.config?.url?.includes('/superadmin');
+
+            if (isSuperAdminRequest) {
+                localStorage.removeItem('superAdminToken');
+                localStorage.removeItem('superAdmin');
+                // Only redirect if we're on a superadmin page
+                if (window.location.pathname.startsWith('/superadmin') &&
+                    window.location.pathname !== '/superadmin/login') {
+                    window.location.href = '/superadmin/login';
+                }
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                // Only redirect if we're NOT on a superadmin page
+                if (!window.location.pathname.startsWith('/superadmin')) {
+                    window.location.href = '/login';
+                }
+            }
         }
         return Promise.reject(error);
     }
