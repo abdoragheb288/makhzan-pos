@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const useAuthStore = create(
     persist(
@@ -9,11 +9,14 @@ export const useAuthStore = create(
             isAuthenticated: false,
 
             setAuth: (user, token) => {
+                // Also store token in sessionStorage for API interceptor
+                sessionStorage.setItem('token', token);
                 set({ user, token, isAuthenticated: true });
             },
 
             logout: () => {
-                localStorage.removeItem('token');
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('auth-storage');
                 set({ user: null, token: null, isAuthenticated: false });
             },
 
@@ -25,6 +28,7 @@ export const useAuthStore = create(
         }),
         {
             name: 'auth-storage',
+            storage: createJSONStorage(() => sessionStorage), // Use sessionStorage for tab isolation
             partialize: (state) => ({
                 user: state.user,
                 token: state.token,

@@ -92,7 +92,7 @@ export function ProtectedRoute({ children }) {
     const [isChecking, setIsChecking] = useState(true);
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('token');
+        const storedToken = sessionStorage.getItem('token');
 
         if (!storedToken || !token || !user) {
             logout();
@@ -105,7 +105,7 @@ export function ProtectedRoute({ children }) {
     }
 
     // Check authentication
-    if (!isAuthenticated || !token || !localStorage.getItem('token')) {
+    if (!isAuthenticated || !token || !sessionStorage.getItem('token')) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
@@ -128,7 +128,7 @@ export function ProtectedRoute({ children }) {
 export function PublicRoute({ children }) {
     const { isAuthenticated, user, token } = useAuthStore();
 
-    if (isAuthenticated && token && localStorage.getItem('token')) {
+    if (isAuthenticated && token && sessionStorage.getItem('token')) {
         const redirectPath = getFirstAllowedPath(user);
         return <Navigate to={redirectPath} replace />;
     }

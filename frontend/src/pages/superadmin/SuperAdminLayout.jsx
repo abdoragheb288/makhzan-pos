@@ -16,8 +16,8 @@ export default function SuperAdminLayout() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('superAdminToken');
-        const admin = localStorage.getItem('superAdmin');
+        const token = sessionStorage.getItem('superAdminToken');
+        const admin = sessionStorage.getItem('superAdmin');
 
         if (!token || !admin) {
             navigate('/superadmin/login');
@@ -28,8 +28,8 @@ export default function SuperAdminLayout() {
     }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem('superAdminToken');
-        localStorage.removeItem('superAdmin');
+        sessionStorage.removeItem('superAdminToken');
+        sessionStorage.removeItem('superAdmin');
         navigate('/superadmin/login');
     };
 

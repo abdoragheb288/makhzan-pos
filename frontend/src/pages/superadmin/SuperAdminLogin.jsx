@@ -24,8 +24,8 @@ export default function SuperAdminLogin() {
             const response = await superAdminService.login(email, password);
 
             if (response.success) {
-                localStorage.setItem('superAdminToken', response.data.token);
-                localStorage.setItem('superAdmin', JSON.stringify(response.data.user));
+                sessionStorage.setItem('superAdminToken', response.data.token);
+                sessionStorage.setItem('superAdmin', JSON.stringify(response.data.user));
                 toast.success('تم تسجيل الدخول بنجاح');
                 navigate('/superadmin/dashboard');
             }

@@ -26,7 +26,7 @@ export default function Login() {
             const response = await authService.login(email, password);
 
             if (response.success) {
-                localStorage.setItem('token', response.data.token);
+                sessionStorage.setItem('token', response.data.token);
                 setAuth(response.data.user, response.data.token);
                 toast.success('تم تسجيل الدخول بنجاح');
                 navigate('/');

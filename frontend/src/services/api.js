@@ -15,10 +15,10 @@ api.interceptors.request.use(
         // Check if this is a superadmin request
         const isSuperAdminRequest = config.url?.includes('/superadmin');
 
-        // Use appropriate token
+        // Use appropriate token - sessionStorage for tab isolation
         const token = isSuperAdminRequest
-            ? localStorage.getItem('superAdminToken')
-            : localStorage.getItem('token');
+            ? sessionStorage.getItem('superAdminToken')
+            : sessionStorage.getItem('token');
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -39,16 +39,16 @@ api.interceptors.response.use(
             const isSuperAdminRequest = error.config?.url?.includes('/superadmin');
 
             if (isSuperAdminRequest) {
-                localStorage.removeItem('superAdminToken');
-                localStorage.removeItem('superAdmin');
+                sessionStorage.removeItem('superAdminToken');
+                sessionStorage.removeItem('superAdmin');
                 // Only redirect if we're on a superadmin page
                 if (window.location.pathname.startsWith('/superadmin') &&
                     window.location.pathname !== '/superadmin/login') {
                     window.location.href = '/superadmin/login';
                 }
             } else {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('user');
                 // Only redirect if we're NOT on a superadmin page
                 if (!window.location.pathname.startsWith('/superadmin')) {
                     window.location.href = '/login';

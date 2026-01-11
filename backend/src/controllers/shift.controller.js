@@ -6,7 +6,12 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 20, branchId, isOpen } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenant through branch relation
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (branchId) where.branchId = parseInt(branchId);
         if (isOpen === 'true') where.closedAt = null;
         if (isOpen === 'false') where.closedAt = { not: null };
