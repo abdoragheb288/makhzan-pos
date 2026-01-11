@@ -14,6 +14,18 @@ const createSale = async (req, res, next) => {
             });
         }
 
+        // Verify branch belongs to tenant
+        const branch = await prisma.branch.findFirst({
+            where: { id: branchId, tenantId: req.user.tenantId }
+        });
+
+        if (!branch) {
+            return res.status(400).json({
+                success: false,
+                message: 'الفرع غير موجود',
+            });
+        }
+
         // Calculate totals
         let subtotal = 0;
         const saleItems = [];
@@ -124,95 +136,165 @@ const getProducts = async (req, res, next) => {
     try {
         const branchId = req.user.branchId;
         const { search, categoryId } = req.query;
+        const tenantId = req.user.tenantId;
 
-        if (!branchId) {
-            return res.status(400).json({
-                success: false,
-                message: 'يجب تحديد الفرع للمستخدم',
+        // If user has a specific branchId (cashier), use inventory-based lookup
+        // If user is Admin (no branchId), return all products for the tenant
+        if (branchId) {
+            // Verify branch belongs to tenant
+            const branch = await prisma.branch.findFirst({
+                where: { id: branchId, tenantId }
             });
-        }
 
-        const where = {
-            branchId,
-            quantity: { gt: 0 },
-            variant: {
-                isActive: true,
-                product: { isActive: true },
-            },
-        };
+            if (!branch) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'الفرع غير موجود',
+                });
+            }
 
-        if (categoryId) {
-            where.variant = {
-                ...where.variant,
-                product: { ...where.variant.product, categoryId: parseInt(categoryId) },
-            };
-        }
-
-        const inventory = await prisma.inventory.findMany({
-            where,
-            include: {
+            const where = {
+                branchId,
+                quantity: { gt: 0 },
                 variant: {
-                    include: {
-                        product: {
-                            select: {
-                                id: true,
-                                name: true,
-                                sku: true,
-                                image: true,
-                                category: { select: { id: true, name: true } },
+                    isActive: true,
+                    product: { isActive: true, tenantId },
+                },
+            };
+
+            if (categoryId) {
+                where.variant = {
+                    ...where.variant,
+                    product: { ...where.variant.product, categoryId: parseInt(categoryId) },
+                };
+            }
+
+            const inventory = await prisma.inventory.findMany({
+                where,
+                include: {
+                    variant: {
+                        include: {
+                            product: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    sku: true,
+                                    image: true,
+                                    category: { select: { id: true, name: true } },
+                                },
                             },
                         },
                     },
                 },
-            },
-        });
+            });
 
-        // Group by Product ID
-        const productsMap = new Map();
+            // Group by Product ID
+            const productsMap = new Map();
 
-        inventory.forEach((inv) => {
-            const product = inv.variant.product;
-            if (!productsMap.has(product.id)) {
-                productsMap.set(product.id, {
-                    id: product.id,
-                    name: product.name,
-                    image: product.image,
-                    category: product.category,
-                    variants: [],
-                    totalStock: 0,
-                    // Use the price of the first variant as a display price
-                    displayPrice: inv.variant.price
+            inventory.forEach((inv) => {
+                const product = inv.variant.product;
+                if (!productsMap.has(product.id)) {
+                    productsMap.set(product.id, {
+                        id: product.id,
+                        name: product.name,
+                        image: product.image,
+                        category: product.category,
+                        variants: [],
+                        totalStock: 0,
+                        displayPrice: inv.variant.price
+                    });
+                }
+
+                const productData = productsMap.get(product.id);
+                productData.variants.push({
+                    inventoryId: inv.id,
+                    variantId: inv.variant.id,
+                    sku: inv.variant.sku,
+                    size: inv.variant.size,
+                    color: inv.variant.color,
+                    price: inv.variant.price,
+                    costPrice: inv.variant.costPrice,
+                    stock: inv.quantity,
                 });
+                productData.totalStock += inv.quantity;
+            });
+
+            let products = Array.from(productsMap.values());
+
+            if (search) {
+                const searchLower = search.toLowerCase();
+                products = products.filter(
+                    (p) =>
+                        p.name.toLowerCase().includes(searchLower) ||
+                        p.variants.some(v => v.sku.toLowerCase().includes(searchLower))
+                );
             }
 
-            const productData = productsMap.get(product.id);
-            productData.variants.push({
-                inventoryId: inv.id,
-                variantId: inv.variant.id,
-                sku: inv.variant.sku,
-                size: inv.variant.size,
-                color: inv.variant.color,
-                price: inv.variant.price,
-                stock: inv.quantity,
+            return res.json({
+                success: true,
+                data: products,
             });
-            productData.totalStock += inv.quantity;
-        });
+        } else {
+            // Admin: Get all products for this tenant (for purchase orders, etc.)
+            const where = {
+                tenantId,
+                isActive: true,
+            };
 
-        let products = Array.from(productsMap.values());
+            if (categoryId) {
+                where.categoryId = parseInt(categoryId);
+            }
 
-        if (search) {
-            const searchLower = search.toLowerCase();
-            products = products.filter(
-                (p) =>
-                    p.name.toLowerCase().includes(searchLower) ||
-                    p.variants.some(v => v.sku.toLowerCase().includes(searchLower))
-            );
+            if (search) {
+                where.OR = [
+                    { name: { contains: search } },
+                    { sku: { contains: search } },
+                ];
+            }
+
+            const productsFromDb = await prisma.product.findMany({
+                where,
+                include: {
+                    variants: {
+                        where: { isActive: true },
+                        select: {
+                            id: true,
+                            sku: true,
+                            size: true,
+                            color: true,
+                            price: true,
+                            costPrice: true,
+                        },
+                    },
+                    category: { select: { id: true, name: true } },
+                },
+                orderBy: { name: 'asc' },
+            });
+
+            // Format for consistency with inventory-based response
+            const products = productsFromDb.map(product => ({
+                id: product.id,
+                name: product.name,
+                image: product.image,
+                category: product.category,
+                variants: product.variants.map(v => ({
+                    variantId: v.id,
+                    sku: v.sku,
+                    size: v.size,
+                    color: v.color,
+                    price: v.price,
+                    costPrice: v.costPrice,
+                    stock: 0, // Admin view doesn't need stock for purchase orders
+                })),
+                displayPrice: product.variants[0]?.price || product.basePrice,
+                totalStock: 0,
+            }));
+
+            return res.json({
+                success: true,
+                data: products,
+            });
         }
-
-        res.json({
-            success: true,
-            data: products,
-        });
     } catch (error) {
         next(error);
     }
@@ -222,26 +304,22 @@ const searchByBarcode = async (req, res, next) => {
     try {
         const { barcode } = req.params;
         const branchId = req.user.branchId;
+        const tenantId = req.user.tenantId;
 
-        if (!branchId) {
-            return res.status(400).json({
-                success: false,
-                message: 'يجب تحديد الفرع للمستخدم',
-            });
-        }
-
+        // Find variant by barcode within tenant's products
         const variant = await prisma.productVariant.findFirst({
             where: {
                 OR: [{ barcode }, { sku: barcode }],
                 isActive: true,
+                product: { tenantId },
             },
             include: {
                 product: {
                     select: { id: true, name: true, sku: true, image: true },
                 },
-                inventory: {
+                inventory: branchId ? {
                     where: { branchId },
-                },
+                } : undefined,
             },
         });
 
@@ -252,7 +330,7 @@ const searchByBarcode = async (req, res, next) => {
             });
         }
 
-        const stock = variant.inventory[0]?.quantity || 0;
+        const stock = branchId ? (variant.inventory[0]?.quantity || 0) : 0;
 
         res.json({
             success: true,
@@ -275,8 +353,9 @@ const searchByBarcode = async (req, res, next) => {
 
 const getCategories = async (req, res, next) => {
     try {
+        // Filter by tenantId
         const categories = await prisma.category.findMany({
-            where: { parentId: null },
+            where: { parentId: null, tenantId: req.user.tenantId },
             include: {
                 children: {
                     select: { id: true, name: true },

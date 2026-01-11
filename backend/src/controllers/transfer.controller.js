@@ -4,6 +4,7 @@ const createTransfer = async (req, res, next) => {
     try {
         const { fromBranchId, toBranchId, items, notes } = req.body;
         const userId = req.user.id;
+        const tenantId = req.user.tenantId;
 
         if (!fromBranchId || !toBranchId || !items || items.length === 0) {
             return res.status(400).json({
@@ -16,6 +17,19 @@ const createTransfer = async (req, res, next) => {
             return res.status(400).json({
                 success: false,
                 message: 'لا يمكن التحويل لنفس الفرع',
+            });
+        }
+
+        // Verify both branches belong to the same tenant
+        const [fromBranch, toBranch] = await Promise.all([
+            prisma.branch.findFirst({ where: { id: parseInt(fromBranchId), tenantId } }),
+            prisma.branch.findFirst({ where: { id: parseInt(toBranchId), tenantId } }),
+        ]);
+
+        if (!fromBranch || !toBranch) {
+            return res.status(400).json({
+                success: false,
+                message: 'الفروع غير موجودة أو لا تنتمي لهذه الشركة',
             });
         }
 
@@ -70,7 +84,7 @@ const createTransfer = async (req, res, next) => {
                     },
                 });
 
-                // Increment Destination (Upsert: Create if logic doesn't exist)
+                // Increment Destination (Upsert: Create if doesn't exist)
                 await tx.inventory.upsert({
                     where: {
                         variantId_branchId: {
@@ -119,12 +133,21 @@ const createTransfer = async (req, res, next) => {
 
 const getTransfers = async (req, res, next) => {
     try {
+        const tenantId = req.user.tenantId;
+
+        // Filter transfers by tenant (either source or destination branch belongs to tenant)
         const transfers = await prisma.stockTransfer.findMany({
+            where: {
+                OR: [
+                    { fromBranch: { tenantId } },
+                    { toBranch: { tenantId } },
+                ]
+            },
             include: {
-                fromBranch: true,
-                toBranch: true,
+                fromBranch: { select: { id: true, name: true } },
+                toBranch: { select: { id: true, name: true } },
                 createdBy: { select: { name: true } },
-                items: { include: { variant: { include: { product: true } } } },
+                items: { include: { variant: { include: { product: { select: { name: true } } } } } },
             },
             orderBy: { createdAt: 'desc' },
         });

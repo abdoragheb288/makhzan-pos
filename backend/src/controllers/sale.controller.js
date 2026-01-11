@@ -6,7 +6,12 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, branchId, userId, startDate, endDate, paymentMethod } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenant through branch relation
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
 
         if (branchId) where.branchId = parseInt(branchId);
         if (userId) where.userId = parseInt(userId);
@@ -44,8 +49,13 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const sale = await prisma.sale.findUnique({
-            where: { id: parseInt(req.params.id) },
+        const sale = await prisma.sale.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
             include: {
                 branch: { select: { id: true, name: true, address: true, phone: true } },
                 user: { select: { id: true, name: true } },
@@ -79,8 +89,13 @@ const getById = async (req, res, next) => {
 
 const getByInvoice = async (req, res, next) => {
     try {
-        const sale = await prisma.sale.findUnique({
-            where: { invoiceNumber: req.params.invoiceNumber },
+        const sale = await prisma.sale.findFirst({
+            where: {
+                invoiceNumber: req.params.invoiceNumber,
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
             include: {
                 branch: { select: { id: true, name: true, address: true, phone: true } },
                 user: { select: { id: true, name: true } },
@@ -118,8 +133,14 @@ const refund = async (req, res, next) => {
         const { items, reason } = req.body;
         // items: [{ saleItemId, quantity }]
 
-        const sale = await prisma.sale.findUnique({
-            where: { id: saleId },
+        // Verify sale belongs to tenant
+        const sale = await prisma.sale.findFirst({
+            where: {
+                id: saleId,
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
             include: { items: true },
         });
 

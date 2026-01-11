@@ -19,7 +19,12 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 20, branchId, category, startDate, endDate } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenant through branch relation
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (branchId) where.branchId = parseInt(branchId);
         if (category) where.category = category;
         if (startDate || endDate) {
@@ -55,6 +60,18 @@ const create = async (req, res, next) => {
     try {
         const { branchId, category, description, amount, date } = req.body;
 
+        // Verify branch belongs to tenant
+        const branch = await prisma.branch.findFirst({
+            where: { id: parseInt(branchId), tenantId: req.user.tenantId }
+        });
+
+        if (!branch) {
+            return res.status(400).json({
+                success: false,
+                message: 'الفرع غير موجود',
+            });
+        }
+
         const expense = await prisma.expense.create({
             data: {
                 branchId: parseInt(branchId),
@@ -79,9 +96,25 @@ const create = async (req, res, next) => {
 const update = async (req, res, next) => {
     try {
         const { category, description, amount, date } = req.body;
+        const expenseId = parseInt(req.params.id);
+
+        // Verify expense belongs to tenant
+        const existing = await prisma.expense.findFirst({
+            where: {
+                id: expenseId,
+                branch: { tenantId: req.user.tenantId }
+            }
+        });
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                message: 'المصروف غير موجود',
+            });
+        }
 
         const expense = await prisma.expense.update({
-            where: { id: parseInt(req.params.id) },
+            where: { id: expenseId },
             data: {
                 category,
                 description,
@@ -102,8 +135,25 @@ const update = async (req, res, next) => {
 
 const remove = async (req, res, next) => {
     try {
+        const expenseId = parseInt(req.params.id);
+
+        // Verify expense belongs to tenant
+        const existing = await prisma.expense.findFirst({
+            where: {
+                id: expenseId,
+                branch: { tenantId: req.user.tenantId }
+            }
+        });
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                message: 'المصروف غير موجود',
+            });
+        }
+
         await prisma.expense.delete({
-            where: { id: parseInt(req.params.id) },
+            where: { id: expenseId },
         });
 
         res.json({ success: true, message: 'تم حذف المصروف' });
@@ -116,7 +166,12 @@ const getSummary = async (req, res, next) => {
     try {
         const { branchId, startDate, endDate } = req.query;
 
-        const where = {};
+        // Filter by tenant through branch
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (branchId) where.branchId = parseInt(branchId);
         if (startDate || endDate) {
             where.date = {};
