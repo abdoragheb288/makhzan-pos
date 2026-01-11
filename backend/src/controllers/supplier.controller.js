@@ -6,7 +6,10 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, search, isActive } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenantId
+        const where = {
+            tenantId: req.user.tenantId
+        };
         if (search) {
             where.OR = [
                 { name: { contains: search } },
@@ -40,8 +43,11 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const supplier = await prisma.supplier.findUnique({
-            where: { id: parseInt(req.params.id) },
+        const supplier = await prisma.supplier.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                tenantId: req.user.tenantId
+            },
             include: {
                 purchaseOrders: {
                     take: 10,
@@ -77,7 +83,13 @@ const create = async (req, res, next) => {
         const { name, phone, email, address } = req.body;
 
         const supplier = await prisma.supplier.create({
-            data: { name, phone, email, address },
+            data: {
+                name,
+                phone,
+                email,
+                address,
+                tenantId: req.user.tenantId // Assign to current tenant
+            },
         });
 
         res.status(201).json({
@@ -94,6 +106,18 @@ const update = async (req, res, next) => {
     try {
         const { name, phone, email, address, isActive } = req.body;
         const supplierId = parseInt(req.params.id);
+
+        // Verify ownership
+        const existing = await prisma.supplier.findFirst({
+            where: { id: supplierId, tenantId: req.user.tenantId }
+        });
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                message: 'المورد غير موجود',
+            });
+        }
 
         const supplier = await prisma.supplier.update({
             where: { id: supplierId },
@@ -113,6 +137,18 @@ const update = async (req, res, next) => {
 const remove = async (req, res, next) => {
     try {
         const supplierId = parseInt(req.params.id);
+
+        // Verify ownership
+        const existing = await prisma.supplier.findFirst({
+            where: { id: supplierId, tenantId: req.user.tenantId }
+        });
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                message: 'المورد غير موجود',
+            });
+        }
 
         await prisma.supplier.update({
             where: { id: supplierId },

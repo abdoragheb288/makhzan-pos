@@ -6,7 +6,12 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, status, supplierId, branchId } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenant through branch relation
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (status) where.status = status;
         if (supplierId) where.supplierId = parseInt(supplierId);
         if (branchId) where.branchId = parseInt(branchId);
@@ -38,8 +43,13 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const order = await prisma.purchaseOrder.findUnique({
-            where: { id: parseInt(req.params.id) },
+        const order = await prisma.purchaseOrder.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
             include: {
                 supplier: true,
                 branch: { select: { id: true, name: true } },

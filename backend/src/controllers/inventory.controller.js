@@ -6,7 +6,12 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 20, branchId, lowStock, search } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenant through branch relation
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
 
         if (branchId) where.branchId = parseInt(branchId);
         if (lowStock === 'true') {
@@ -61,10 +66,19 @@ const getByBranch = async (req, res, next) => {
         const branchId = parseInt(req.params.branchId);
         const { lowStock } = req.query;
 
-        const where = { branchId };
-        if (lowStock === 'true') {
-            // Will filter after fetch
+        // Verify branch belongs to tenant
+        const branch = await prisma.branch.findFirst({
+            where: { id: branchId, tenantId: req.user.tenantId }
+        });
+
+        if (!branch) {
+            return res.status(404).json({
+                success: false,
+                message: 'الفرع غير موجود',
+            });
         }
+
+        const where = { branchId };
 
         const inventory = await prisma.inventory.findMany({
             where,
@@ -97,6 +111,18 @@ const getByBranch = async (req, res, next) => {
 const updateStock = async (req, res, next) => {
     try {
         const { variantId, branchId, quantity, minStock, operation } = req.body;
+
+        // Verify branch belongs to tenant
+        const branch = await prisma.branch.findFirst({
+            where: { id: parseInt(branchId), tenantId: req.user.tenantId }
+        });
+
+        if (!branch) {
+            return res.status(404).json({
+                success: false,
+                message: 'الفرع غير موجود',
+            });
+        }
 
         const existingInventory = await prisma.inventory.findUnique({
             where: {
@@ -158,22 +184,37 @@ const getLowStock = async (req, res, next) => {
     try {
         const { branchId } = req.query;
 
-        const inventory = await prisma.$queryRaw`
-      SELECT i.*, v.sku as variant_sku, v.size, v.color, 
-             p.name as product_name, p.sku as product_sku, p.image,
-             b.name as branch_name
-      FROM inventory i
-      JOIN product_variants v ON i.variant_id = v.id
-      JOIN products p ON v.product_id = p.id
-      JOIN branches b ON i.branch_id = b.id
-      WHERE i.quantity <= i.min_stock
-      ${branchId ? prisma.$queryRaw`AND i.branch_id = ${parseInt(branchId)}` : prisma.$queryRaw``}
-      ORDER BY i.quantity ASC
-    `;
+        // Get all branches for this tenant
+        const tenantBranches = await prisma.branch.findMany({
+            where: { tenantId: req.user.tenantId },
+            select: { id: true }
+        });
+        const branchIds = tenantBranches.map(b => b.id);
+
+        // Filter low stock items for tenant's branches
+        const inventory = await prisma.inventory.findMany({
+            where: {
+                branchId: branchId ? parseInt(branchId) : { in: branchIds },
+                quantity: {
+                    lte: 10 // Will compare with minStock in results
+                }
+            },
+            include: {
+                variant: {
+                    include: {
+                        product: { select: { name: true, sku: true, image: true } }
+                    }
+                },
+                branch: { select: { name: true } }
+            }
+        });
+
+        // Filter only items below their own minStock
+        const lowStockItems = inventory.filter(item => item.quantity <= item.minStock);
 
         res.json({
             success: true,
-            data: inventory,
+            data: lowStockItems,
         });
     } catch (error) {
         next(error);
@@ -184,6 +225,18 @@ const adjustStock = async (req, res, next) => {
     try {
         const { items, branchId, reason } = req.body;
         // items: [{ variantId, newQuantity }]
+
+        // Verify branch belongs to tenant
+        const branch = await prisma.branch.findFirst({
+            where: { id: parseInt(branchId), tenantId: req.user.tenantId }
+        });
+
+        if (!branch) {
+            return res.status(404).json({
+                success: false,
+                message: 'الفرع غير موجود',
+            });
+        }
 
         const results = [];
 

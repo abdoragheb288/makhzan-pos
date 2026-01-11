@@ -6,7 +6,10 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, search, parentId } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenantId
+        const where = {
+            tenantId: req.user.tenantId
+        };
 
         if (search) {
             where.name = { contains: search };
@@ -44,7 +47,7 @@ const getAll = async (req, res, next) => {
 const getTree = async (req, res, next) => {
     try {
         const categories = await prisma.category.findMany({
-            where: { parentId: null },
+            where: { parentId: null, tenantId: req.user.tenantId },
             include: {
                 children: {
                     include: {
@@ -69,8 +72,11 @@ const getTree = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const category = await prisma.category.findUnique({
-            where: { id: parseInt(req.params.id) },
+        const category = await prisma.category.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                tenantId: req.user.tenantId
+            },
             include: {
                 parent: { select: { id: true, name: true } },
                 children: { select: { id: true, name: true } },
@@ -103,6 +109,7 @@ const create = async (req, res, next) => {
                 name,
                 description,
                 parentId: parentId ? parseInt(parentId) : null,
+                tenantId: req.user.tenantId, // Assign to current tenant
             },
         });
 
@@ -121,8 +128,8 @@ const update = async (req, res, next) => {
         const { name, description, parentId } = req.body;
         const categoryId = parseInt(req.params.id);
 
-        const existingCategory = await prisma.category.findUnique({
-            where: { id: categoryId },
+        const existingCategory = await prisma.category.findFirst({
+            where: { id: categoryId, tenantId: req.user.tenantId },
         });
 
         if (!existingCategory) {
