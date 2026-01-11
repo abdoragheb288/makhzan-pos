@@ -6,7 +6,10 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, search, categoryId, isActive } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenantId for tenant isolation
+        const where = {
+            tenantId: req.user.tenantId
+        };
 
         if (search) {
             where.OR = [
@@ -53,8 +56,11 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const product = await prisma.product.findUnique({
-            where: { id: parseInt(req.params.id) },
+        const product = await prisma.product.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                tenantId: req.user.tenantId
+            },
             include: {
                 category: { select: { id: true, name: true } },
                 variants: {
@@ -110,6 +116,7 @@ const create = async (req, res, next) => {
                 costPrice: parseFloat(costPrice) || 0,
                 description,
                 image,
+                tenantId: req.user.tenantId, // Assign to current tenant
                 variants: variants?.length ? {
                     create: variants.map((v, index) => ({
                         size: v.size,
@@ -142,8 +149,11 @@ const update = async (req, res, next) => {
         const { name, sku, barcode, categoryId, basePrice, costPrice, description, image, isActive } = req.body;
         const productId = parseInt(req.params.id);
 
-        const existingProduct = await prisma.product.findUnique({
-            where: { id: productId },
+        const existingProduct = await prisma.product.findFirst({
+            where: {
+                id: productId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!existingProduct) {
@@ -197,8 +207,11 @@ const remove = async (req, res, next) => {
     try {
         const productId = parseInt(req.params.id);
 
-        const product = await prisma.product.findUnique({
-            where: { id: productId },
+        const product = await prisma.product.findFirst({
+            where: {
+                id: productId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!product) {
@@ -229,8 +242,11 @@ const addVariant = async (req, res, next) => {
         const productId = parseInt(req.params.id);
         const { size, color, sku, barcode, price, costPrice } = req.body;
 
-        const product = await prisma.product.findUnique({
-            where: { id: productId },
+        const product = await prisma.product.findFirst({
+            where: {
+                id: productId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!product) {
