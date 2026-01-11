@@ -42,11 +42,14 @@ const getAll = async (req, res, next) => {
 
 const getCurrent = async (req, res, next) => {
     try {
-        // Find the current user's open shift (by userId, not just branchId)
+        // Find the current user's open shift - filter by tenant through branch
         const openShift = await prisma.shift.findFirst({
             where: {
                 userId: req.user.id,
                 closedAt: null,
+                branch: {
+                    tenantId: req.user.tenantId
+                }
             },
             include: {
                 branch: { select: { id: true, name: true } },
@@ -65,11 +68,29 @@ const open = async (req, res, next) => {
     try {
         const { branchId, openingBalance } = req.body;
 
-        // Check if there's an open shift
+        // First verify the branch belongs to the same tenant
+        const branch = await prisma.branch.findFirst({
+            where: {
+                id: parseInt(branchId),
+                tenantId: req.user.tenantId
+            }
+        });
+
+        if (!branch) {
+            return res.status(400).json({
+                success: false,
+                message: 'الفرع غير موجود أو لا ينتمي لهذه الشركة',
+            });
+        }
+
+        // Check if there's an open shift for this branch (within same tenant)
         const existingShift = await prisma.shift.findFirst({
             where: {
                 branchId: parseInt(branchId),
                 closedAt: null,
+                branch: {
+                    tenantId: req.user.tenantId
+                }
             },
         });
 
@@ -103,9 +124,15 @@ const close = async (req, res, next) => {
         const { actualCash, notes } = req.body;
         const shiftId = parseInt(req.params.id);
 
-        const shift = await prisma.shift.findUnique({
-            where: { id: shiftId },
-            include: { transactions: true },
+        // Find shift with tenant verification through branch
+        const shift = await prisma.shift.findFirst({
+            where: {
+                id: shiftId,
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
+            include: { transactions: true, branch: true },
         });
 
         if (!shift) {
@@ -117,12 +144,15 @@ const close = async (req, res, next) => {
         }
 
         // Calculate expected cash
-        // Get sales during shift
+        // Get sales during shift (also filter by tenant)
         const sales = await prisma.sale.aggregate({
             where: {
                 branchId: shift.branchId,
                 paymentMethod: 'CASH',
                 createdAt: { gte: shift.openedAt },
+                branch: {
+                    tenantId: req.user.tenantId
+                }
             },
             _sum: { total: true },
         });
@@ -162,8 +192,14 @@ const addTransaction = async (req, res, next) => {
         const { type, amount, reason } = req.body;
         const shiftId = parseInt(req.params.id);
 
-        const shift = await prisma.shift.findUnique({
-            where: { id: shiftId },
+        // Find shift with tenant verification
+        const shift = await prisma.shift.findFirst({
+            where: {
+                id: shiftId,
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
         });
 
         if (!shift || shift.closedAt) {
@@ -194,8 +230,14 @@ const addTransaction = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const shift = await prisma.shift.findUnique({
-            where: { id: parseInt(req.params.id) },
+        // Find shift with tenant verification through branch
+        const shift = await prisma.shift.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                branch: {
+                    tenantId: req.user.tenantId
+                }
+            },
             include: {
                 branch: { select: { name: true } },
                 user: { select: { name: true } },

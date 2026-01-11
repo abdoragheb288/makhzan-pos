@@ -6,7 +6,10 @@ const getAll = async (req, res, next) => {
         const { page = 1, limit = 10, search, isWarehouse, isActive } = req.query;
         const { skip, take } = paginationHelper(page, limit);
 
-        const where = {};
+        // Filter by tenantId for tenant isolation
+        const where = {
+            tenantId: req.user.tenantId
+        };
 
         if (search) {
             where.OR = [
@@ -44,8 +47,12 @@ const getAll = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
     try {
-        const branch = await prisma.branch.findUnique({
-            where: { id: parseInt(req.params.id) },
+        // Find branch with tenant verification
+        const branch = await prisma.branch.findFirst({
+            where: {
+                id: parseInt(req.params.id),
+                tenantId: req.user.tenantId
+            },
             include: {
                 users: {
                     select: {
@@ -81,12 +88,14 @@ const create = async (req, res, next) => {
     try {
         const { name, address, phone, isWarehouse } = req.body;
 
+        // Create branch with tenantId from authenticated user
         const branch = await prisma.branch.create({
             data: {
                 name,
                 address,
                 phone,
                 isWarehouse: isWarehouse || false,
+                tenantId: req.user.tenantId, // Assign to current tenant
             },
         });
 
@@ -105,8 +114,12 @@ const update = async (req, res, next) => {
         const { name, address, phone, isWarehouse, isActive } = req.body;
         const branchId = parseInt(req.params.id);
 
-        const existingBranch = await prisma.branch.findUnique({
-            where: { id: branchId },
+        // Verify branch belongs to same tenant
+        const existingBranch = await prisma.branch.findFirst({
+            where: {
+                id: branchId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!existingBranch) {
@@ -140,8 +153,12 @@ const remove = async (req, res, next) => {
     try {
         const branchId = parseInt(req.params.id);
 
-        const branch = await prisma.branch.findUnique({
-            where: { id: branchId },
+        // Verify branch belongs to same tenant
+        const branch = await prisma.branch.findFirst({
+            where: {
+                id: branchId,
+                tenantId: req.user.tenantId
+            },
         });
 
         if (!branch) {
@@ -168,8 +185,13 @@ const remove = async (req, res, next) => {
 
 const getWarehouses = async (req, res, next) => {
     try {
+        // Filter warehouses by tenantId
         const warehouses = await prisma.branch.findMany({
-            where: { isWarehouse: true, isActive: true },
+            where: {
+                isWarehouse: true,
+                isActive: true,
+                tenantId: req.user.tenantId
+            },
             select: {
                 id: true,
                 name: true,
