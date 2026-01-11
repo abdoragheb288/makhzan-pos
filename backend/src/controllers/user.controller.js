@@ -189,10 +189,14 @@ const update = async (req, res, next) => {
             email,
             phone,
             role,
-            branchId: branchId ? parseInt(branchId) : null,
             isActive,
             permissions: permissions !== undefined ? permissions : undefined,
         };
+
+        // Only update branchId if explicitly provided (can be number or null)
+        if (branchId !== undefined) {
+            updateData.branchId = branchId ? parseInt(branchId) : null;
+        }
 
         if (password) {
             updateData.password = await bcrypt.hash(password, 12);
