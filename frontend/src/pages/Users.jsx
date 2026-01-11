@@ -63,7 +63,10 @@ export default function Users() {
         e.preventDefault();
         try {
             const data = { ...formData };
-            if (!data.branchId) delete data.branchId;
+            // Convert empty branchId to null (not delete, so backend updates it)
+            if (data.branchId === '' || data.branchId === undefined) {
+                data.branchId = null;
+            }
             if (editingUser && !data.password) delete data.password;
 
             if (editingUser) {
