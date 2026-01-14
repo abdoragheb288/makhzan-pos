@@ -26,6 +26,7 @@ export default function TenantsPage() {
         name: '',
         email: '',
         phone: '',
+        businessType: 'retail', // restaurant, cafe, retail, supermarket
         adminName: '',
         adminEmail: '',
         adminPassword: '',
@@ -107,6 +108,7 @@ export default function TenantsPage() {
             name: '',
             email: '',
             phone: '',
+            businessType: 'retail',
             adminName: '',
             adminEmail: '',
             adminPassword: '',
@@ -120,6 +122,7 @@ export default function TenantsPage() {
             name: tenant.name,
             email: tenant.email,
             phone: tenant.phone || '',
+            businessType: tenant.businessType || 'retail',
             adminName: '',
             adminEmail: '',
             adminPassword: '',
@@ -350,6 +353,22 @@ export default function TenantsPage() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">نوع النشاط *</label>
+                                    <select
+                                        value={formData.businessType}
+                                        onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                                        required
+                                    >
+                                        <option value="retail">تجزئة (ملابس، إلكترونيات)</option>
+                                        <option value="restaurant">مطعم</option>
+                                        <option value="cafe">كافيه</option>
+                                        <option value="supermarket">سوبرماركت</option>
+                                    </select>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                        يحدد المميزات المتاحة وواجهة نقطة البيع
+                                    </p>
                                 </div>
 
                                 {!selectedTenant && (

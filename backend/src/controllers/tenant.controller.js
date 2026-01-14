@@ -72,7 +72,16 @@ const getById = async (req, res, next) => {
 // Create new tenant with admin user
 const create = async (req, res, next) => {
     try {
-        const { name, email, phone, adminName, adminEmail, adminPassword, plan } = req.body;
+        const { name, email, phone, businessType = 'retail', adminName, adminEmail, adminPassword, plan } = req.body;
+
+        // Validate businessType
+        const validBusinessTypes = ['restaurant', 'cafe', 'retail', 'supermarket'];
+        if (!validBusinessTypes.includes(businessType)) {
+            return res.status(400).json({
+                success: false,
+                message: 'نوع النشاط غير صالح',
+            });
+        }
 
         // Check if tenant email exists
         const existingTenant = await prisma.tenant.findUnique({ where: { email } });
@@ -104,6 +113,7 @@ const create = async (req, res, next) => {
                 name,
                 email,
                 phone,
+                businessType, // restaurant, cafe, retail, supermarket
                 status: 'TRIAL',
                 trialEndsAt,
                 users: {
@@ -141,11 +151,21 @@ const create = async (req, res, next) => {
 // Update tenant
 const update = async (req, res, next) => {
     try {
-        const { name, phone, status, isActive } = req.body;
+        const { name, phone, status, isActive, businessType } = req.body;
+
+        const updateData = { name, phone, status, isActive };
+
+        // Only update businessType if provided and valid
+        if (businessType) {
+            const validBusinessTypes = ['restaurant', 'cafe', 'retail', 'supermarket'];
+            if (validBusinessTypes.includes(businessType)) {
+                updateData.businessType = businessType;
+            }
+        }
 
         const tenant = await prisma.tenant.update({
             where: { id: parseInt(req.params.id) },
-            data: { name, phone, status, isActive },
+            data: updateData,
         });
 
         res.json({
