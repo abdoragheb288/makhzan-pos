@@ -17,8 +17,10 @@ import {
     DollarSign,
     Clock,
     Tag,
+    UtensilsCrossed,
+    ClipboardList,
 } from 'lucide-react';
-import { useAuthStore } from '../store';
+import { useAuthStore, useFeature, useBusinessConfig } from '../store';
 import { getInitials, getRoleLabel } from '../utils/helpers';
 
 const navItems = [
@@ -27,6 +29,14 @@ const navItems = [
         items: [
             { path: '/', icon: LayoutDashboard, label: 'لوحة التحكم', permission: 'admin' },
             { path: '/pos', icon: ShoppingCart, label: 'نقطة البيع', permission: 'pos' },
+        ],
+    },
+    {
+        section: 'المطعم',
+        feature: 'tables', // Only show for restaurant/cafe
+        items: [
+            { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات', permission: 'pos', feature: 'tables' },
+            { path: '/orders', icon: ClipboardList, label: 'الطلبات', permission: 'pos', feature: 'orders' },
         ],
     },
     {
@@ -57,8 +67,8 @@ const navItems = [
             { path: '/sales', icon: FileText, label: 'الفواتير', permission: 'reports' },
             { path: '/returns', icon: RotateCcw, label: 'المرتجعات', permission: 'reports' },
             { path: '/discounts', icon: Tag, label: 'الخصومات', permission: 'settings' },
-            { path: '/installments', icon: Clock, label: 'التقسيط', permission: 'reports' },
-            { path: '/preorders', icon: Clock, label: 'الحجوزات', permission: 'inventory' },
+            { path: '/installments', icon: Clock, label: 'التقسيط', permission: 'reports', feature: 'installments' },
+            { path: '/preorders', icon: Clock, label: 'الحجوزات', permission: 'inventory', feature: 'preorders' },
         ],
     },
     {
@@ -80,7 +90,7 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-    const { user, logout } = useAuthStore();
+    const { user, logout, businessConfig } = useAuthStore();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -88,10 +98,28 @@ export default function Sidebar() {
         navigate('/login');
     };
 
+    // Check if user has permission (role-based)
     const hasPermission = (requiredPerm) => {
         if (!requiredPerm) return true;
         if (user?.role === 'ADMIN') return true;
         return user?.permissions?.includes(requiredPerm);
+    };
+
+    // Check if feature is enabled for this business type
+    const isFeatureEnabled = (feature) => {
+        if (!feature) return true; // No feature requirement = always show
+        return businessConfig?.features?.[feature] ?? false;
+    };
+
+    // Check if item should be visible (both permission AND feature)
+    const isItemVisible = (item) => {
+        return hasPermission(item.permission) && isFeatureEnabled(item.feature);
+    };
+
+    // Check if section should be visible (at least one item visible)
+    const isSectionVisible = (section) => {
+        if (section.feature && !isFeatureEnabled(section.feature)) return false;
+        return section.items.some(item => isItemVisible(item));
     };
 
     return (
@@ -103,9 +131,10 @@ export default function Sidebar() {
 
             <nav className="sidebar-nav">
                 {navItems.map((section) => {
-                    const filteredItems = section.items.filter(item => hasPermission(item.permission));
+                    // Skip section if not visible (feature disabled or no visible items)
+                    if (!isSectionVisible(section)) return null;
 
-                    if (filteredItems.length === 0) return null;
+                    const filteredItems = section.items.filter(item => isItemVisible(item));
 
                     return (
                         <div key={section.section} className="nav-section">
