@@ -65,6 +65,7 @@ app.use('/api/superadmin', require('./routes/superadmin.routes'));
 // Restaurant/Cafe specific routes (feature-gated)
 app.use('/api/tables', require('./routes/table.routes'));
 app.use('/api/orders', require('./routes/order.routes'));
+app.use('/api/customers', require('./routes/customerRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

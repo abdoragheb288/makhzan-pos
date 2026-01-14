@@ -35,8 +35,10 @@ const navItems = [
         section: 'المطعم',
         feature: 'tables', // Only show for restaurant/cafe
         items: [
+            { path: '/restaurant-pos', icon: ShoppingCart, label: 'نقطة البيع', permission: 'pos', feature: 'tables' },
             { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات', permission: 'tables', feature: 'tables' },
             { path: '/orders', icon: ClipboardList, label: 'الطلبات', permission: 'orders', feature: 'orders' },
+            { path: '/kitchen', icon: UtensilsCrossed, label: 'شاشة المطبخ', permission: 'orders', feature: 'orders' },
         ],
     },
     {

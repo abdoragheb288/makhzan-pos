@@ -32,6 +32,8 @@ import {
 // Restaurant/Cafe pages (feature-gated in Sidebar)
 import Tables from './pages/Tables';
 import Orders from './pages/Orders';
+import RestaurantPOS from './pages/RestaurantPOS';
+import KitchenDisplay from './pages/KitchenDisplay';
 
 import './styles/globals.css';
 import './styles/components.css';
@@ -109,6 +111,8 @@ function App() {
             {/* Restaurant/Cafe Routes (feature-gated) */}
             <Route path="tables" element={<Tables />} />
             <Route path="orders" element={<Orders />} />
+            <Route path="restaurant-pos" element={<RestaurantPOS />} />
+            <Route path="kitchen" element={<KitchenDisplay />} />
           </Route>
 
           {/* Super Admin Routes */}
