@@ -15,12 +15,13 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { posService } from '../services';
-import { usePosStore } from '../store';
+import { usePosStore, useBusinessConfig } from '../store';
 import { formatCurrency, formatNumber } from '../utils/helpers';
 import ShiftWidget from '../components/ShiftWidget';
 import '../styles/pos.css';
 
 export default function POS() {
+    const businessConfig = useBusinessConfig();
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +30,13 @@ export default function POS() {
     const [selectedProductForVariants, setSelectedProductForVariants] = useState(null);
     const searchRef = useRef(null);
     const barcodeRef = useRef(null);
+
+    // Get UI config from business type
+    const ui = businessConfig?.ui || {};
+    const placeholders = ui.placeholders || {};
+    const terminology = ui.terminology || {};
+    const posConfig = businessConfig?.pos || {};
+    const showVariants = businessConfig?.features?.variants ?? true;
 
     const {
         cart,
@@ -160,7 +168,7 @@ export default function POS() {
                         <input
                             ref={searchRef}
                             type="text"
-                            placeholder="بحث عن منتج..."
+                            placeholder={placeholders.searchProducts || 'بحث عن منتج...'}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && fetchProducts()}

@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Folder, FolderOpen } from 'lucide-react';
+import { Plus, Edit2, Trash2, Folder, FolderOpen, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { categoryService } from '../services';
+import { useBusinessConfig } from '../store';
 
 export default function Categories() {
+    const businessConfig = useBusinessConfig();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
+    const [seeding, setSeeding] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         parentId: '',
     });
+
+    // Get UI config from business type
+    const ui = businessConfig?.ui || {};
+    const placeholders = ui.placeholders || {};
+    const terminology = ui.terminology || {};
+    const defaultCategories = businessConfig?.defaults?.categories || [];
 
     useEffect(() => {
         fetchCategories();
@@ -79,6 +88,45 @@ export default function Categories() {
         }
     };
 
+    // Seed default categories for this business type
+    const handleSeedDefaults = async () => {
+        if (defaultCategories.length === 0) {
+            toast.error('لا توجد تصنيفات افتراضية لهذا النشاط');
+            return;
+        }
+
+        setSeeding(true);
+        let created = 0;
+        let existing = 0;
+
+        try {
+            for (const cat of defaultCategories) {
+                // Check if category already exists
+                const existingCat = categories.find(
+                    c => c.name.toLowerCase() === cat.name.toLowerCase()
+                );
+
+                if (!existingCat) {
+                    await categoryService.create({ name: cat.name, description: '' });
+                    created++;
+                } else {
+                    existing++;
+                }
+            }
+
+            if (created > 0) {
+                toast.success(`تم إضافة ${created} تصنيف`);
+                fetchCategories();
+            } else {
+                toast.info('كل التصنيفات الافتراضية موجودة بالفعل');
+            }
+        } catch (error) {
+            toast.error('حدث خطأ أثناء إضافة التصنيفات');
+        } finally {
+            setSeeding(false);
+        }
+    };
+
     const flatCategories = [];
     const flattenCategories = (cats, level = 0) => {
         cats.forEach(cat => {
@@ -136,13 +184,26 @@ export default function Categories() {
         <div className="animate-fade-in">
             <div className="page-header">
                 <div className="page-header-info">
-                    <h1>التصنيفات</h1>
-                    <p>إدارة تصنيفات المنتجات</p>
+                    <h1>{terminology.categories || 'التصنيفات'}</h1>
+                    <p>إدارة {terminology.categories || 'تصنيفات'} {terminology.products || 'المنتجات'}</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
-                    <Plus size={18} />
-                    إضافة تصنيف
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                    {defaultCategories.length > 0 && (
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleSeedDefaults}
+                            disabled={seeding}
+                            title="إضافة التصنيفات الافتراضية لهذا النشاط"
+                        >
+                            <Sparkles size={18} />
+                            {seeding ? 'جاري الإضافة...' : 'تصنيفات مقترحة'}
+                        </button>
+                    )}
+                    <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
+                        <Plus size={18} />
+                        إضافة {terminology.category || 'تصنيف'}
+                    </button>
+                </div>
             </div>
 
             <div className="card">
@@ -177,12 +238,12 @@ export default function Categories() {
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="form-group">
-                                    <label className="form-label">اسم التصنيف</label>
+                                    <label className="form-label">اسم {terminology.category || 'التصنيف'}</label>
                                     <input
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="مثال: ملابس رجالي"
+                                        placeholder={placeholders.categoryName || 'مثال: ملابس رجالي'}
                                         required
                                     />
                                 </div>

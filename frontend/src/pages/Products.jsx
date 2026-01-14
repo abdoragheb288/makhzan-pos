@@ -3,8 +3,10 @@ import { Plus, Search, Edit2, Trash2, Package, Eye, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { productService, categoryService } from '../services';
 import { formatCurrency } from '../utils/helpers';
+import { useBusinessConfig } from '../store';
 
 export default function Products() {
+    const businessConfig = useBusinessConfig();
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -15,6 +17,13 @@ export default function Products() {
     const [editingProduct, setEditingProduct] = useState(null);
     const [viewingProduct, setViewingProduct] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    // Get UI config from business type
+    const ui = businessConfig?.ui || {};
+    const placeholders = ui.placeholders || {};
+    const terminology = ui.terminology || {};
+    const formConfig = ui.forms?.product || {};
+    const showVariants = businessConfig?.features?.variants ?? true;
 
     const [formData, setFormData] = useState({
         name: '',
@@ -207,13 +216,13 @@ export default function Products() {
         <div className="animate-fade-in">
             <div className="page-header">
                 <div className="page-header-info">
-                    <h1>المنتجات</h1>
-                    <p>إدارة المنتجات والمتغيرات</p>
+                    <h1>{terminology.products || 'المنتجات'}</h1>
+                    <p>إدارة {terminology.products || 'المنتجات'} {showVariants ? 'والمتغيرات' : ''}</p>
                 </div>
                 <div className="page-actions">
                     <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
                         <Plus size={18} />
-                        إضافة منتج
+                        إضافة {terminology.product || 'منتج'}
                     </button>
                 </div>
             </div>
@@ -224,7 +233,7 @@ export default function Products() {
                     <form onSubmit={handleSearch} className="search-input" style={{ flex: 1 }}>
                         <input
                             type="text"
-                            placeholder="بحث عن منتج..."
+                            placeholder={placeholders.searchProducts || 'بحث عن منتج...'}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -369,23 +378,23 @@ export default function Products() {
                             <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                                     <div className="form-group">
-                                        <label className="form-label">اسم المنتج *</label>
+                                        <label className="form-label">اسم {terminology.product || 'المنتج'} *</label>
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="مثال: تيشيرت قطن"
+                                            placeholder={placeholders.productName || 'مثال: تيشيرت قطن'}
                                             required
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">التصنيف *</label>
+                                        <label className="form-label">{terminology.category || 'التصنيف'} *</label>
                                         <select
                                             value={formData.categoryId}
                                             onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                                             required
                                         >
-                                            <option value="">اختر التصنيف</option>
+                                            <option value="">اختر {terminology.category || 'التصنيف'}</option>
                                             {categories.map((cat) => (
                                                 <option key={cat.id} value={cat.id}>{cat.name}</option>
                                             ))}
@@ -444,74 +453,76 @@ export default function Products() {
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         rows={2}
-                                        placeholder="وصف المنتج..."
+                                        placeholder={placeholders.productDescription || 'وصف المنتج...'}
                                     />
                                 </div>
 
-                                {/* Variants Section */}
-                                <div style={{ marginTop: 'var(--spacing-lg)', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--spacing-lg)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-                                        <h4 style={{ margin: 0 }}>المتغيرات (المقاسات والألوان)</h4>
-                                        <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddVariant}>
-                                            <Plus size={14} /> إضافة متغير
-                                        </button>
-                                    </div>
-
-                                    {formData.variants.map((variant, index) => (
-                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)', alignItems: 'end' }}>
-                                            <div className="form-group" style={{ margin: 0 }}>
-                                                <label className="form-label" style={{ fontSize: '0.75rem' }}>المقاس</label>
-                                                <input
-                                                    type="text"
-                                                    value={variant.size}
-                                                    onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                                                    placeholder="S, M, L..."
-                                                />
-                                            </div>
-                                            <div className="form-group" style={{ margin: 0 }}>
-                                                <label className="form-label" style={{ fontSize: '0.75rem' }}>اللون</label>
-                                                <input
-                                                    type="text"
-                                                    value={variant.color}
-                                                    onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
-                                                    placeholder="أبيض، أسود..."
-                                                />
-                                            </div>
-                                            <div className="form-group" style={{ margin: 0 }}>
-                                                <label className="form-label" style={{ fontSize: '0.75rem' }}>السعر</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={variant.price}
-                                                    onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-                                                    placeholder={formData.basePrice || '0.00'}
-                                                />
-                                            </div>
-                                            <div className="form-group" style={{ margin: 0 }}>
-                                                <label className="form-label" style={{ fontSize: '0.75rem' }}>التكلفة</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={variant.costPrice}
-                                                    onChange={(e) => handleVariantChange(index, 'costPrice', e.target.value)}
-                                                    placeholder={formData.costPrice || '0.00'}
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="btn btn-ghost btn-icon"
-                                                onClick={() => handleRemoveVariant(index)}
-                                                style={{ color: 'var(--color-danger-500)', marginBottom: 4 }}
-                                                disabled={formData.variants.length === 1}
-                                            >
-                                                <X size={16} />
+                                {/* Variants Section - Only show if variants are enabled for this business type */}
+                                {showVariants && (
+                                    <div style={{ marginTop: 'var(--spacing-lg)', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--spacing-lg)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+                                            <h4 style={{ margin: 0 }}>المتغيرات (المقاسات والألوان)</h4>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddVariant}>
+                                                <Plus size={14} /> إضافة متغير
                                             </button>
                                         </div>
-                                    ))}
-                                    <p className="form-hint" style={{ marginTop: 'var(--spacing-sm)' }}>
-                                        أضف متغيرات مختلفة للمنتج (مقاسات، ألوان) مع أسعار مختلفة إذا لزم الأمر
-                                    </p>
-                                </div>
+
+                                        {formData.variants.map((variant, index) => (
+                                            <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)', alignItems: 'end' }}>
+                                                <div className="form-group" style={{ margin: 0 }}>
+                                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>المقاس</label>
+                                                    <input
+                                                        type="text"
+                                                        value={variant.size}
+                                                        onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                                                        placeholder="S, M, L..."
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{ margin: 0 }}>
+                                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>اللون</label>
+                                                    <input
+                                                        type="text"
+                                                        value={variant.color}
+                                                        onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
+                                                        placeholder="أبيض، أسود..."
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{ margin: 0 }}>
+                                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>السعر</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={variant.price}
+                                                        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                                                        placeholder={formData.basePrice || '0.00'}
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{ margin: 0 }}>
+                                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>التكلفة</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={variant.costPrice}
+                                                        onChange={(e) => handleVariantChange(index, 'costPrice', e.target.value)}
+                                                        placeholder={formData.costPrice || '0.00'}
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-ghost btn-icon"
+                                                    onClick={() => handleRemoveVariant(index)}
+                                                    style={{ color: 'var(--color-danger-500)', marginBottom: 4 }}
+                                                    disabled={formData.variants.length === 1}
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <p className="form-hint" style={{ marginTop: 'var(--spacing-sm)' }}>
+                                            أضف متغيرات مختلفة للمنتج (مقاسات، ألوان) مع أسعار مختلفة إذا لزم الأمر
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>إلغاء</button>
