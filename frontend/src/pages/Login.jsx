@@ -27,7 +27,7 @@ export default function Login() {
 
             if (response.success) {
                 sessionStorage.setItem('token', response.data.token);
-                setAuth(response.data.user, response.data.token);
+                setAuth(response.data.user, response.data.token, response.data.businessConfig);
                 toast.success('تم تسجيل الدخول بنجاح');
                 navigate('/');
             }

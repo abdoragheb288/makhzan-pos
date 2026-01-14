@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
+const { getConfig } = require('../config/businessConfig');
 
 const auth = async (req, res, next) => {
     try {
@@ -26,11 +27,19 @@ const auth = async (req, res, next) => {
                 tenantId: true,
                 branchId: true,
                 isActive: true,
+                permissions: true,
                 branch: {
                     select: {
                         id: true,
                         name: true,
                         isWarehouse: true,
+                    },
+                },
+                tenant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        businessType: true,
                     },
                 },
             },
@@ -43,7 +52,15 @@ const auth = async (req, res, next) => {
             });
         }
 
-        req.user = user;
+        // Get business configuration based on tenant's business type
+        const businessType = user.tenant?.businessType || 'retail';
+        const businessConfig = getConfig(businessType);
+
+        req.user = {
+            ...user,
+            businessType,
+            businessConfig,
+        };
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {

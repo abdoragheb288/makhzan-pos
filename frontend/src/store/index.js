@@ -7,23 +7,39 @@ export const useAuthStore = create(
             user: null,
             token: null,
             isAuthenticated: false,
+            businessConfig: null,  // Business configuration based on tenant's businessType
 
-            setAuth: (user, token) => {
+            setAuth: (user, token, businessConfig = null) => {
                 // Also store token in sessionStorage for API interceptor
                 sessionStorage.setItem('token', token);
-                set({ user, token, isAuthenticated: true });
+                set({ user, token, isAuthenticated: true, businessConfig });
             },
 
             logout: () => {
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('auth-storage');
-                set({ user: null, token: null, isAuthenticated: false });
+                set({ user: null, token: null, isAuthenticated: false, businessConfig: null });
             },
 
             updateUser: (userData) => {
                 set((state) => ({
                     user: { ...state.user, ...userData },
                 }));
+            },
+
+            // Business config helpers
+            getBusinessType: () => {
+                return get().user?.businessType || 'retail';
+            },
+
+            isFeatureEnabled: (feature) => {
+                const config = get().businessConfig;
+                return config?.features?.[feature] ?? false;
+            },
+
+            getPosFlow: () => {
+                const config = get().businessConfig;
+                return config?.pos?.flow || 'direct';
             },
         }),
         {
@@ -33,10 +49,26 @@ export const useAuthStore = create(
                 user: state.user,
                 token: state.token,
                 isAuthenticated: state.isAuthenticated,
+                businessConfig: state.businessConfig,
             }),
         }
     )
 );
+
+// Hook for easy feature checks
+export const useFeature = (feature) => {
+    return useAuthStore((state) => state.businessConfig?.features?.[feature] ?? false);
+};
+
+// Hook for getting business config
+export const useBusinessConfig = () => {
+    return useAuthStore((state) => state.businessConfig);
+};
+
+// Hook for getting POS flow type
+export const usePosFlow = () => {
+    return useAuthStore((state) => state.businessConfig?.pos?.flow || 'direct');
+};
 
 export const usePosStore = create((set, get) => ({
     cart: [],

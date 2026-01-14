@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
+const { getConfig } = require('../config/businessConfig');
 
 const login = async (req, res, next) => {
     try {
@@ -22,6 +23,7 @@ const login = async (req, res, next) => {
                         isActive: true,
                         status: true,
                         name: true,
+                        businessType: true,
                     }
                 }
             },
@@ -64,6 +66,10 @@ const login = async (req, res, next) => {
             { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
         );
 
+        // Get business configuration
+        const businessType = user.tenant?.businessType || 'retail';
+        const businessConfig = getConfig(businessType);
+
         res.json({
             success: true,
             message: 'تم تسجيل الدخول بنجاح',
@@ -76,10 +82,12 @@ const login = async (req, res, next) => {
                     role: user.role,
                     tenantId: user.tenantId,
                     tenantName: user.tenant?.name,
+                    businessType,
                     branchId: user.branchId,
                     branch: user.branch,
                     permissions: user.permissions || [],
                 },
+                businessConfig,
             },
         });
     } catch (error) {
