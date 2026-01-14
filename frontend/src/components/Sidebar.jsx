@@ -35,8 +35,8 @@ const navItems = [
         section: 'المطعم',
         feature: 'tables', // Only show for restaurant/cafe
         items: [
-            { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات', permission: 'pos', feature: 'tables' },
-            { path: '/orders', icon: ClipboardList, label: 'الطلبات', permission: 'pos', feature: 'orders' },
+            { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات', permission: 'admin', feature: 'tables' },
+            { path: '/orders', icon: ClipboardList, label: 'الطلبات', permission: 'admin', feature: 'orders' },
         ],
     },
     {
