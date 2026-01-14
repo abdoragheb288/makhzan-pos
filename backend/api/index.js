@@ -56,6 +56,10 @@ app.use('/api/commissions', require('../src/routes/commission.routes'));
 app.use('/api/analytics', require('../src/routes/analytics.routes'));
 app.use('/api/superadmin', require('../src/routes/superadmin.routes'));
 
+// Restaurant/Cafe specific routes (feature-gated)
+app.use('/api/tables', require('../src/routes/table.routes'));
+app.use('/api/orders', require('../src/routes/order.routes'));
+
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
