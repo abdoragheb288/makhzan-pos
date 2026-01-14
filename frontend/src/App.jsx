@@ -29,6 +29,10 @@ import {
   Analytics,
 } from './pages';
 
+// Restaurant/Cafe pages (feature-gated in Sidebar)
+import Tables from './pages/Tables';
+import Orders from './pages/Orders';
+
 import './styles/globals.css';
 import './styles/components.css';
 import './styles/layout.css';
@@ -101,6 +105,10 @@ function App() {
             <Route path="installments" element={<Installments />} />
             <Route path="preorders" element={<PreOrders />} />
             <Route path="analytics" element={<Analytics />} />
+
+            {/* Restaurant/Cafe Routes (feature-gated) */}
+            <Route path="tables" element={<Tables />} />
+            <Route path="orders" element={<Orders />} />
           </Route>
 
           {/* Super Admin Routes */}
