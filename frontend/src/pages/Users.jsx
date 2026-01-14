@@ -5,13 +5,20 @@ import { userService, branchService } from '../services';
 import { getRoleLabel } from '../utils/helpers';
 
 const AVAILABLE_PERMISSIONS = [
-    { id: 'pos', label: 'نقاط البيع' },
+    { id: 'dashboard', label: 'لوحة التحكم' },
+    { id: 'pos', label: 'نقطة البيع' },
+    { id: 'tables', label: 'الطاولات' },
+    { id: 'orders', label: 'الطلبات' },
     { id: 'products', label: 'المنتجات' },
     { id: 'inventory', label: 'المخزون' },
     { id: 'transfers', label: 'التحويلات' },
+    { id: 'suppliers', label: 'الموردين' },
+    { id: 'sales', label: 'الفواتير' },
+    { id: 'expenses', label: 'المصروفات' },
+    { id: 'shifts', label: 'الورديات' },
+    { id: 'reports', label: 'التقارير' },
     { id: 'users', label: 'المستخدمين' },
     { id: 'settings', label: 'الإعدادات' },
-    { id: 'reports', label: 'التقارير' },
 ];
 
 export default function Users() {

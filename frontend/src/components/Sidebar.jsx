@@ -27,7 +27,7 @@ const navItems = [
     {
         section: 'الرئيسية',
         items: [
-            { path: '/', icon: LayoutDashboard, label: 'لوحة التحكم', permission: 'admin' },
+            { path: '/', icon: LayoutDashboard, label: 'لوحة التحكم', permission: 'dashboard' },
             { path: '/pos', icon: ShoppingCart, label: 'نقطة البيع', permission: 'pos' },
         ],
     },
@@ -35,8 +35,8 @@ const navItems = [
         section: 'المطعم',
         feature: 'tables', // Only show for restaurant/cafe
         items: [
-            { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات', permission: 'admin', feature: 'tables' },
-            { path: '/orders', icon: ClipboardList, label: 'الطلبات', permission: 'admin', feature: 'orders' },
+            { path: '/tables', icon: UtensilsCrossed, label: 'الطاولات', permission: 'tables', feature: 'tables' },
+            { path: '/orders', icon: ClipboardList, label: 'الطلبات', permission: 'orders', feature: 'orders' },
         ],
     },
     {
@@ -57,25 +57,25 @@ const navItems = [
     {
         section: 'المشتريات',
         items: [
-            { path: '/suppliers', icon: Truck, label: 'الموردين', permission: 'inventory' },
-            { path: '/purchases', icon: FileText, label: 'أوامر الشراء', permission: 'inventory' },
+            { path: '/suppliers', icon: Truck, label: 'الموردين', permission: 'suppliers' },
+            { path: '/purchases', icon: FileText, label: 'أوامر الشراء', permission: 'suppliers' },
         ],
     },
     {
         section: 'المبيعات',
         items: [
-            { path: '/sales', icon: FileText, label: 'الفواتير', permission: 'reports' },
-            { path: '/returns', icon: RotateCcw, label: 'المرتجعات', permission: 'reports' },
+            { path: '/sales', icon: FileText, label: 'الفواتير', permission: 'sales' },
+            { path: '/returns', icon: RotateCcw, label: 'المرتجعات', permission: 'sales' },
             { path: '/discounts', icon: Tag, label: 'الخصومات', permission: 'settings' },
-            { path: '/installments', icon: Clock, label: 'التقسيط', permission: 'reports', feature: 'installments' },
+            { path: '/installments', icon: Clock, label: 'التقسيط', permission: 'sales', feature: 'installments' },
             { path: '/preorders', icon: Clock, label: 'الحجوزات', permission: 'inventory', feature: 'preorders' },
         ],
     },
     {
         section: 'المالية',
         items: [
-            { path: '/expenses', icon: DollarSign, label: 'المصروفات', permission: 'reports' },
-            { path: '/shifts', icon: Clock, label: 'الورديات', permission: 'admin' },
+            { path: '/expenses', icon: DollarSign, label: 'المصروفات', permission: 'expenses' },
+            { path: '/shifts', icon: Clock, label: 'الورديات', permission: 'shifts' },
         ],
     },
     {
