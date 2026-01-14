@@ -8,6 +8,8 @@ import {
     DollarSign,
     Calendar,
     Award,
+    UtensilsCrossed,
+    Coffee,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -22,8 +24,10 @@ import {
 } from 'recharts';
 import { dashboardService } from '../services';
 import { formatCurrency, formatNumber, formatDateTime } from '../utils/helpers';
+import { useBusinessConfig } from '../store';
 
 export default function Dashboard() {
+    const businessConfig = useBusinessConfig();
     const [stats, setStats] = useState(null);
     const [recentSales, setRecentSales] = useState([]);
     const [chartData, setChartData] = useState([]);
@@ -31,6 +35,12 @@ export default function Dashboard() {
     const [topProducts, setTopProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [chartDays, setChartDays] = useState(7);
+
+    // Get business type info
+    const businessName = businessConfig?.nameAr || 'المتجر';
+    const terminology = businessConfig?.ui?.terminology || {};
+    const showTables = businessConfig?.features?.tables ?? false;
+    const showVariants = businessConfig?.features?.variants ?? true;
 
     useEffect(() => {
         fetchDashboardData();
@@ -75,7 +85,7 @@ export default function Dashboard() {
             <div className="page-header" style={{ marginBottom: 'var(--spacing-xl)' }}>
                 <div className="page-header-info">
                     <h1>لوحة التحكم</h1>
-                    <p>نظرة شاملة على أداء المتجر</p>
+                    <p>نظرة شاملة على أداء {businessName}</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
                     <Calendar size={18} color="var(--text-muted)" />
@@ -169,7 +179,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                         <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{formatNumber(stats?.productsCount || 0)}</div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>إجمالي المنتجات</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>إجمالي {terminology.products || 'المنتجات'}</div>
                     </div>
                 </div>
             </div>
@@ -247,7 +257,7 @@ export default function Dashboard() {
                     <div className="card-header">
                         <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Award size={18} color="var(--color-warning-500)" />
-                            الأكثر مبيعاً
+                            {terminology.products ? `ال${terminology.products} الأكثر مبيعاً` : 'الأكثر مبيعاً'}
                         </h3>
                     </div>
                     <div className="card-body" style={{ padding: 0 }}>
