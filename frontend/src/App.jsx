@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import MainLayout from './layouts/MainLayout';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
+import POSRouter from './components/POSRouter';
 import {
   Dashboard,
   Login,
@@ -88,7 +89,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="pos" element={<POS />} />
+            <Route path="pos" element={<POSRouter />} />
             <Route path="products" element={<Products />} />
             <Route path="categories" element={<Categories />} />
             <Route path="branches" element={<Branches />} />
