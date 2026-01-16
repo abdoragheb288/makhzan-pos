@@ -398,10 +398,11 @@ export default function RestaurantPOS() {
 
             // Create or get order
             let orderId = activeTableOrder?.id;
+            let orderData = null;
 
             if (!orderId) {
                 // Create order first
-                const orderData = {
+                orderData = {
                     orderType,
                     tableId: selectedTable?.id,
                     customerId,
@@ -438,7 +439,7 @@ export default function RestaurantPOS() {
                 const completedOrder = checkoutRes.data.data;
                 const finalOrder = {
                     ...activeTableOrder,
-                    ...orderData, // Ensure latest data
+                    ...(orderData || {}), // Ensure latest data if created new
                     id: orderId,
                     items: cart.map(item => ({ ...item, unitPrice: item.price })), // Simplified for receipt
                     total: total,
