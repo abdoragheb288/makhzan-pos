@@ -161,7 +161,20 @@ const getById = async (req, res, next) => {
  */
 const create = async (req, res, next) => {
     try {
-        const { tableId, orderType = 'dine_in', items, notes, customerName } = req.body;
+        const {
+            tableId,
+            orderType = 'dine_in',
+            items,
+            notes,
+            // New fields
+            customerId,
+            customerName,
+            customerPhone,
+            customerAddress,
+            deliveryFee = 0,
+            driverName
+        } = req.body;
+
         const branchId = req.user.branchId;
 
         if (!branchId) {
@@ -196,8 +209,20 @@ const create = async (req, res, next) => {
             }
         }
 
-        // Generate order number
+        // Generate global order number
         const orderNumber = await generateOrderNumber(req.user.tenantId);
+
+        // Generate shift order number (daily reset)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const shiftOrderCount = await prisma.order.count({
+            where: {
+                tenantId: req.user.tenantId,
+                branchId,
+                createdAt: { gte: todayStart }
+            }
+        });
+        const shiftOrderNumber = shiftOrderCount + 1;
 
         // Calculate totals
         let subtotal = 0;
@@ -209,6 +234,9 @@ const create = async (req, res, next) => {
                     id: item.productId,
                     tenantId: req.user.tenantId,
                 },
+                include: {
+                    variants: true
+                }
             });
 
             if (!product) {
@@ -218,18 +246,31 @@ const create = async (req, res, next) => {
                 });
             }
 
-            const unitPrice = parseFloat(item.unitPrice || product.basePrice);
+            // Determine unit price and variant
+            let unitPrice = parseFloat(item.unitPrice || product.basePrice);
+            let variantId = item.variantId;
+
+            // If no variantId passed but product has variants, try to find matching or use default
+            if (!variantId && product.variants.length > 0) {
+                variantId = product.variants[0].id;
+                unitPrice = parseFloat(product.variants[0].price);
+            }
+
             const itemTotal = unitPrice * item.quantity;
             subtotal += itemTotal;
 
             orderItems.push({
                 productId: item.productId,
-                variantId: item.variantId || null,
+                variantId: variantId || null,
                 quantity: item.quantity,
                 unitPrice,
                 notes: item.notes || null,
             });
         }
+
+        // Calculate final total
+        const finalDeliveryFee = parseFloat(deliveryFee) || 0;
+        const total = subtotal + finalDeliveryFee;
 
         // Create order with items
         const order = await prisma.order.create({
@@ -239,11 +280,20 @@ const create = async (req, res, next) => {
                 tableId: tableId ? parseInt(tableId) : null,
                 userId: req.user.id,
                 orderNumber,
+                shiftOrderNumber,
                 orderType,
                 subtotal,
-                total: subtotal, // No discount/tax for now
+                deliveryFee: finalDeliveryFee,
+                total,
                 notes,
+                // Customer details
+                customerId: customerId ? parseInt(customerId) : null,
                 customerName,
+                customerPhone,
+                customerAddress,
+                driverName,
+                // KDS timestamp
+                sentToKitchenAt: new Date(),
                 items: {
                     create: orderItems,
                 },
@@ -434,7 +484,7 @@ const updateStatus = async (req, res, next) => {
 const convertToSale = async (req, res, next) => {
     try {
         const orderId = parseInt(req.params.id);
-        const { paymentMethod = 'CASH', discount = 0 } = req.body;
+        const { paymentMethod = 'CASH', discount = 0, paidAmount } = req.body;
 
         const order = await prisma.order.findFirst({
             where: {
@@ -445,7 +495,11 @@ const convertToSale = async (req, res, next) => {
             include: {
                 items: {
                     include: {
-                        product: true,
+                        product: {
+                            include: {
+                                variants: true
+                            }
+                        },
                         variant: true,
                     },
                 },
@@ -473,7 +527,8 @@ const convertToSale = async (req, res, next) => {
         // Calculate final total
         const subtotal = parseFloat(order.subtotal);
         const discountAmount = parseFloat(discount);
-        const total = subtotal - discountAmount;
+        const deliveryFee = parseFloat(order.deliveryFee) || 0;
+        const total = subtotal - discountAmount + deliveryFee;
 
         // Create sale with items
         const sale = await prisma.sale.create({
@@ -481,11 +536,15 @@ const convertToSale = async (req, res, next) => {
                 branchId: order.branchId,
                 userId: req.user.id,
                 invoiceNumber,
-                subtotal,
+                subtotal, // Product total only
                 discount: discountAmount,
                 tax: 0,
+                // Total includes delivery fee
                 total,
+                paid: parseFloat(paidAmount) || total,
+                change: (parseFloat(paidAmount) || total) - total,
                 paymentMethod,
+                notes: `Delivery Fee: ${deliveryFee} - Order #${order.id}`,
                 items: {
                     create: order.items.map(item => ({
                         variantId: item.variantId || item.product.variants?.[0]?.id,
