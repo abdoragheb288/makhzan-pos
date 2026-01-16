@@ -11,7 +11,11 @@ const getStats = async (req, res, next) => {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        const where = {};
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (branchId && userRole !== 'ADMIN') {
             where.branchId = branchId;
         }
@@ -142,7 +146,11 @@ const getRecentSales = async (req, res, next) => {
         const branchId = req.user.branchId;
         const userRole = req.user.role;
 
-        const where = {};
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (branchId && userRole !== 'ADMIN') {
             where.branchId = branchId;
         }
@@ -179,6 +187,9 @@ const getSalesChart = async (req, res, next) => {
 
         const where = {
             createdAt: { gte: startDate },
+            branch: {
+                tenantId: req.user.tenantId
+            }
         };
         if (branchId && userRole !== 'ADMIN') {
             where.branchId = branchId;
@@ -221,7 +232,11 @@ const getLowStockAlerts = async (req, res, next) => {
         const branchId = req.user.branchId;
         const userRole = req.user.role;
 
-        const where = {};
+        const where = {
+            branch: {
+                tenantId: req.user.tenantId
+            }
+        };
         if (branchId && userRole !== 'ADMIN') {
             where.branchId = branchId;
         }
@@ -263,10 +278,13 @@ const getTopProducts = async (req, res, next) => {
         const where = {
             sale: {
                 createdAt: { gte: startDate },
+                branch: {
+                    tenantId: req.user.tenantId
+                }
             },
         };
         if (branchId && userRole !== 'ADMIN') {
-            where.sale = { ...where.sale, branchId };
+            where.sale.branchId = branchId;
         }
 
         // Get all sale items in the period
