@@ -96,6 +96,9 @@ export default function RestaurantPOS() {
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [paidAmount, setPaidAmount] = useState('');
 
+    // Last Order for Receipt
+    const [lastOrder, setLastOrder] = useState(null);
+
     const searchRef = useRef(null);
     const barcodeRef = useRef(null);
     const phoneInputRef = useRef(null);
@@ -275,7 +278,23 @@ export default function RestaurantPOS() {
                 console.error('Error loading table order:', error);
             }
         }
+
         setSelectedTable(table);
+        // Clear cart if new table selected and no existing order
+        if (table.status !== 'occupied') {
+            setCart([]);
+            setActiveTableOrder(null);
+        }
+    };
+
+    // Close Table (Go back to table view)
+    const handleCloseTable = () => {
+        setSelectedTable(null);
+        setActiveTableOrder(null);
+        setCart([]);
+        setNotes('');
+        setDiscount(0);
+        fetchTables(); // Refresh status
     };
 
     // Send to Kitchen (for dine_in)
@@ -415,6 +434,19 @@ export default function RestaurantPOS() {
             });
 
             if (checkoutRes.data.success) {
+                const completedOrder = checkoutRes.data.data;
+                const finalOrder = {
+                    ...activeTableOrder,
+                    ...orderData, // Ensure latest data
+                    id: orderId,
+                    items: cart.map(item => ({ ...item, unitPrice: item.price })), // Simplified for receipt
+                    total: total,
+                    paid: paidAmount,
+                    change: change,
+                    invoiceNumber: completedOrder.invoiceNumber || `INV-${orderId}`
+                };
+
+                setLastOrder(finalOrder);
                 toast.success('تم إتمام الطلب بنجاح');
 
                 // Clear table if dine_in
@@ -426,8 +458,10 @@ export default function RestaurantPOS() {
                 clearCart();
                 setShowPaymentModal(false);
 
-                // Open print dialog (optional)
-                // window.print();
+                // Open print dialog
+                setTimeout(() => {
+                    window.print();
+                }, 500);
             }
         } catch (error) {
             console.error('Checkout error:', error);
@@ -593,9 +627,23 @@ export default function RestaurantPOS() {
                         </div>
                     )}
 
-                    {/* Categories */}
+                    {/* Products Grid */}
                     {(orderType !== 'dine_in' || selectedTable) && !showDeliveryForm && (
                         <>
+                            {/* Back to Tables Button */}
+                            {orderType === 'dine_in' && selectedTable && (
+                                <div style={{ padding: '0 var(--spacing-md)', marginBottom: 'var(--spacing-sm)' }}>
+                                    <button
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={handleCloseTable}
+                                        style={{ width: 'fit-content' }}
+                                    >
+                                        <ArrowLeftRight size={16} /> تغيير / إغلاق الطاولة ({selectedTable.name})
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Categories */}
                             <div className="pos-categories">
                                 <button
                                     className={`pos-category-btn ${!selectedCategory ? 'active' : ''}`}
@@ -806,6 +854,68 @@ export default function RestaurantPOS() {
                     </div>
                 </div>
             )}
+            {/* Receipt Component (Hidden unless printing) */}
+            <div id="receipt-print-area" style={{ display: 'none' }}>
+                {lastOrder && (
+                    <div style={{ textAlign: 'center', direction: 'rtl' }}>
+                        <h2 style={{ fontSize: '18px', margin: '10px 0' }}>مخزن POS</h2>
+                        <p>التاريخ: {new Date().toLocaleString('ar-EG')}</p>
+                        <p>رقم الفاتورة: {lastOrder.invoiceNumber}</p>
+                        {lastOrder.tableId && <p>طاولة: {tables.find(t => t.id === lastOrder.tableId)?.name}</p>}
+                        {lastOrder.orderType === 'delivery' && (
+                            <div style={{ borderBottom: '1px dashed #000', paddingBottom: '5px', marginBottom: '5px' }}>
+                                <p>العميل: {lastOrder.customerName}</p>
+                                <p>هاتف: {lastOrder.customerPhone}</p>
+                                <p>العنوان: {lastOrder.customerAddress}</p>
+                            </div>
+                        )}
+
+                        <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', margin: '10px 0', padding: '10px 0' }}>
+                            <table style={{ width: '100%', fontSize: '12px' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ textAlign: 'right' }}>الصنف</th>
+                                        <th>العدد</th>
+                                        <th>السعر</th>
+                                        <th>الإجمالي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {lastOrder.items.map((item, i) => (
+                                        <tr key={i}>
+                                            <td style={{ textAlign: 'right' }}>{item.name}</td>
+                                            <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                                            <td style={{ textAlign: 'center' }}>{item.price}</td>
+                                            <td style={{ textAlign: 'center' }}>{item.quantity * item.price}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                            <span>الإجمالي:</span>
+                            <span>{formatCurrency(lastOrder.total)}</span>
+                        </div>
+                        {parseFloat(lastOrder.deliveryFee) > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>التوصيل:</span>
+                                <span>{formatCurrency(lastOrder.deliveryFee)}</span>
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>المدفوع:</span>
+                            <span>{formatCurrency(lastOrder.paid)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>الباقي:</span>
+                            <span>{formatCurrency(lastOrder.change)}</span>
+                        </div>
+
+                        <p style={{ marginTop: '20px', fontSize: '12px' }}>شكراً لزيارتكم!</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

@@ -23,6 +23,11 @@ const ROUTE_PERMISSIONS = {
     '/installments': 'installments',
     '/preorders': 'preorders',
     '/analytics': 'analytics',
+    // Restaurant Routes
+    '/restaurant-pos': 'pos',
+    '/tables': 'tables',
+    '/orders': 'orders',
+    '/kitchen': 'orders',
 };
 
 // Permission to default path mapping

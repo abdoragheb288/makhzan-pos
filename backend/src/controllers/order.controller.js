@@ -44,7 +44,13 @@ const getAll = async (req, res, next) => {
         };
 
         if (branchId) where.branchId = parseInt(branchId);
-        if (status) where.status = status;
+        if (status) {
+            if (status.includes(',')) {
+                where.status = { in: status.split(',') };
+            } else {
+                where.status = status;
+            }
+        }
         if (tableId) where.tableId = parseInt(tableId);
         if (orderType) where.orderType = orderType;
 
