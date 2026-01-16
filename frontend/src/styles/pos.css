@@ -718,3 +718,50 @@
         display: none !important;
     }
 }
+
+/* OVERRIDE PRINT STYLES */
+@media print {
+
+    /* Hide everything first */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Reset Container Visibility */
+    .pos-container {
+        display: block !important;
+        height: auto !important;
+        width: auto !important;
+        overflow: visible !important;
+        visibility: visible !important;
+        /* Allow children to be seen */
+        position: static !important;
+    }
+
+    /* Hide Siblings explicitly */
+    .sidebar,
+    header,
+    .pos-order-types,
+    .pos-content {
+        display: none !important;
+    }
+
+    /* Show Receipt */
+    #receipt-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+        padding: 5mm;
+        background: white !important;
+        color: black !important;
+        z-index: 99999;
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    #receipt-print-area * {
+        visibility: visible !important;
+        color: black !important;
+    }
+}
