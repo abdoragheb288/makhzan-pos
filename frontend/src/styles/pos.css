@@ -689,31 +689,32 @@
     .pos-products {
         min-height: 400px;
     }
+}
 
-    /* Print Styles */
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-
-        #receipt-print-area,
-        #receipt-print-area * {
-            visibility: visible;
-        }
-
-        #receipt-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            width: 80mm;
-            /* Standard thermal paper */
-            padding: 5mm;
-        }
-
-        .pos-container,
-        .sidebar,
-        header {
-            display: none !important;
-        }
+/* Print Styles */
+@media print {
+    body * {
+        visibility: hidden;
     }
+
+    #receipt-print-area,
+    #receipt-print-area * {
+        visibility: visible;
+    }
+
+    #receipt-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        width: 80mm;
+        /* Standard thermal paper */
+        padding: 5mm;
+    }
+
+    .pos-container,
+    .sidebar,
+    header {
+        display: none !important;
+    }
+}
