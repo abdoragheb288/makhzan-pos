@@ -720,11 +720,6 @@
 }
 
 /* OVERRIDE PRINT STYLES */
-@page {
-    size: 80mm auto;
-    margin: 0;
-}
-
 @media print {
 
     /* Hide everything first */
@@ -741,8 +736,6 @@
         visibility: visible !important;
         /* Allow children to be seen */
         position: static !important;
-        margin: 0 !important;
-        padding: 0 !important;
     }
 
     /* Hide Siblings explicitly */
@@ -758,38 +751,17 @@
         position: absolute;
         left: 0;
         top: 0;
-        width: 100%;
-        /* Fill the @page width */
-        padding: 2mm;
-        /* Small padding for thermal paper */
+        width: 80mm;
+        padding: 5mm;
         background: white !important;
         color: black !important;
         z-index: 99999;
         visibility: visible !important;
         display: block !important;
-        font-family: 'Courier New', Courier, monospace;
-        /* Better for receipts */
-        font-size: 12px;
     }
 
     #receipt-print-area * {
         visibility: visible !important;
         color: black !important;
-    }
-
-    #receipt-print-area h2 {
-        font-size: 16px;
-        margin-bottom: 5px;
-    }
-
-    #receipt-print-area table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    #receipt-print-area th,
-    #receipt-print-area td {
-        border-bottom: 1px dashed #000;
-        padding: 4px 0;
     }
 }

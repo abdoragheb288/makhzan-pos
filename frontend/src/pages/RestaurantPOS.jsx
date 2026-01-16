@@ -859,62 +859,100 @@ export default function RestaurantPOS() {
             {/* Receipt Component (Hidden unless printing) */}
             <div id="receipt-print-area" style={{ display: 'none' }}>
                 {lastOrder && (
-                    <div style={{ textAlign: 'center', direction: 'rtl' }}>
-                        <h2 style={{ fontSize: '18px', margin: '10px 0' }}>مخزن POS</h2>
-                        <p>التاريخ: {new Date().toLocaleString('ar-EG')}</p>
-                        <p>رقم الفاتورة: {lastOrder.invoiceNumber}</p>
-                        {lastOrder.tableId && <p>طاولة: {tables.find(t => t.id === lastOrder.tableId)?.name}</p>}
-                        {lastOrder.orderType === 'delivery' && (
-                            <div style={{ borderBottom: '1px dashed #000', paddingBottom: '5px', marginBottom: '5px' }}>
-                                <p>العميل: {lastOrder.customerName}</p>
-                                <p>هاتف: {lastOrder.customerPhone}</p>
-                                <p>العنوان: {lastOrder.customerAddress}</p>
-                            </div>
-                        )}
+                    <div style={{ textAlign: 'center', direction: 'rtl', fontFamily: 'Arial, sans-serif', width: '100%' }}>
 
-                        <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', margin: '10px 0', padding: '10px 0' }}>
-                            <table style={{ width: '100%', fontSize: '12px' }}>
+                        {/* Header */}
+                        <div style={{ borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '10px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 5px 0' }}>مخزن POS</h2>
+                            <p style={{ fontSize: '14px', margin: '2px 0' }}>{new Date().toLocaleString('ar-EG')}</p>
+                            <p style={{ fontSize: '14px', margin: '2px 0' }}>رقم الفاتورة: #{lastOrder.invoiceNumber}</p>
+                        </div>
+
+                        {/* Order Type & Info */}
+                        <div style={{ textAlign: 'right', marginBottom: '15px', fontSize: '16px', fontWeight: 'bold' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                <span>نوع الطلب:</span>
+                                <span style={{ fontSize: '18px', border: '1px solid #000', padding: '2px 8px', borderRadius: '4px' }}>
+                                    {ORDER_TYPES[lastOrder.orderType]?.label || lastOrder.orderType}
+                                </span>
+                            </div>
+
+                            {/* Dine-in Info */}
+                            {lastOrder.tableId && (
+                                <p style={{ margin: '5px 0' }}>طاولة: {tables.find(t => t.id === lastOrder.tableId)?.name}</p>
+                            )}
+                            {/* Delivery Info */}
+                            {lastOrder.orderType === 'delivery' && (
+                                <div style={{ border: '1px dashed #000', padding: '8px', marginTop: '5px', fontSize: '14px' }}>
+                                    <p style={{ margin: '2px 0' }}>العميل: {lastOrder.customerName}</p>
+                                    <p style={{ margin: '2px 0' }}>تليفون: {lastOrder.customerPhone}</p>
+                                    <p style={{ margin: '2px 0' }}>العنوان: {lastOrder.customerAddress}</p>
+                                    {lastOrder.driverName && <p style={{ margin: '2px 0' }}>الطيار: {lastOrder.driverName}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Items Table */}
+                        <div style={{ marginBottom: '15px' }}>
+                            <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                                 <thead>
-                                    <tr>
-                                        <th style={{ textAlign: 'right' }}>الصنف</th>
-                                        <th>العدد</th>
-                                        <th>السعر</th>
-                                        <th>الإجمالي</th>
+                                    <tr style={{ borderBottom: '2px solid #000' }}>
+                                        <th style={{ textAlign: 'right', padding: '5px 0' }}>الصنف</th>
+                                        <th style={{ textAlign: 'center', width: '30px' }}>عدد</th>
+                                        <th style={{ textAlign: 'center', width: '50px' }}>سعر</th>
+                                        <th style={{ textAlign: 'left', width: '50px' }}>إجمالي</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {lastOrder.items.map((item, i) => (
-                                        <tr key={i}>
-                                            <td style={{ textAlign: 'right' }}>{item.name}</td>
+                                        <tr key={i} style={{ borderBottom: '1px dashed #ccc' }}>
+                                            <td style={{ textAlign: 'right', padding: '8px 0', fontWeight: 'bold' }}>
+                                                {item.name}
+                                                {item.variantId && <div style={{ fontSize: '11px', fontWeight: 'normal' }}>{item.product?.variants?.find(v => v.id === item.variantId)?.name}</div>}
+                                            </td>
                                             <td style={{ textAlign: 'center' }}>{item.quantity}</td>
                                             <td style={{ textAlign: 'center' }}>{item.price}</td>
-                                            <td style={{ textAlign: 'center' }}>{item.quantity * item.price}</td>
+                                            <td style={{ textAlign: 'left' }}>{item.quantity * item.price}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                            <span>الإجمالي:</span>
-                            <span>{formatCurrency(lastOrder.total)}</span>
-                        </div>
-                        {parseFloat(lastOrder.deliveryFee) > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>التوصيل:</span>
-                                <span>{formatCurrency(lastOrder.deliveryFee)}</span>
+                        {/* Totals */}
+                        <div style={{ borderTop: '2px solid #000', paddingTop: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', marginBottom: '5px' }}>
+                                <span>الإجمالي:</span>
+                                <span style={{ fontWeight: 'bold' }}>{formatCurrency(lastOrder.total - (parseFloat(lastOrder.deliveryFee) || 0))}</span>
                             </div>
-                        )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>المدفوع:</span>
-                            <span>{formatCurrency(lastOrder.paid)}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>الباقي:</span>
-                            <span>{formatCurrency(lastOrder.change)}</span>
+
+                            {parseFloat(lastOrder.deliveryFee) > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
+                                    <span>خدمة التوصيل:</span>
+                                    <span>{formatCurrency(lastOrder.deliveryFee)}</span>
+                                </div>
+                            )}
+
+                            {/* Final Total */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 'bold', margin: '10px 0' }}>
+                                <span>المطلوب:</span>
+                                <span>{formatCurrency(lastOrder.total)}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                <span>المدفوع:</span>
+                                <span>{formatCurrency(lastOrder.paid)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                <span>الباقي:</span>
+                                <span>{formatCurrency(lastOrder.change)}</span>
+                            </div>
                         </div>
 
-                        <p style={{ marginTop: '20px', fontSize: '12px' }}>شكراً لزيارتكم!</p>
+                        <div style={{ marginTop: '20px', fontSize: '14px', fontWeight: 'bold' }}>
+                            <p style={{ margin: '5px 0' }}>شكراً لزيارتكم!</p>
+                            <p style={{ margin: '0', fontSize: '12px' }}>نعتز بخدمتكم</p>
+                        </div>
                     </div>
                 )}
             </div>
