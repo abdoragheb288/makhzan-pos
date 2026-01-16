@@ -23,6 +23,7 @@ import {
     MapPin,
     Check,
     Loader2,
+    ArrowLeftRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -272,7 +273,7 @@ export default function RestaurantPOS() {
                         quantity: item.quantity,
                     }));
                     setCart(cartItems);
-                    toast.info(`طلب موجود على الطاولة #${existingOrder.shiftOrderNumber || existingOrder.id}`);
+                    toast(`طلب موجود على الطاولة #${existingOrder.shiftOrderNumber || existingOrder.id}`, { icon: 'ℹ️' });
                 }
             } catch (error) {
                 console.error('Error loading table order:', error);
