@@ -3,26 +3,18 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 
-// Import routes
-const authRoutes = require('../src/routes/auth.routes');
-const userRoutes = require('../src/routes/user.routes');
-const branchRoutes = require('../src/routes/branch.routes');
-const categoryRoutes = require('../src/routes/category.routes');
-const productRoutes = require('../src/routes/product.routes');
-const inventoryRoutes = require('../src/routes/inventory.routes');
-const transferRoutes = require('../src/routes/transfer.routes');
-const supplierRoutes = require('../src/routes/supplier.routes');
-const purchaseRoutes = require('../src/routes/purchase.routes');
-const saleRoutes = require('../src/routes/sale.routes');
-const posRoutes = require('../src/routes/pos.routes');
-const reportRoutes = require('../src/routes/report.routes');
-const dashboardRoutes = require('../src/routes/dashboard.routes');
-const returnRoutes = require('../src/routes/return.routes');
-const expenseRoutes = require('../src/routes/expense.routes');
-const shiftRoutes = require('../src/routes/shift.routes');
-const discountRoutes = require('../src/routes/discount.routes');
-
 const app = express();
+
+// =====================================================
+// EARLY HEALTH CHECK - Responds immediately on cold start
+// =====================================================
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api', (req, res) => {
+    res.json({ message: 'Makhzan POS API', version: '1.0.0' });
+});
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -30,24 +22,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/branches', branchRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/transfers', transferRoutes);
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/purchases', purchaseRoutes);
-app.use('/api/sales', saleRoutes);
-app.use('/api/pos', posRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/returns', returnRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/shifts', shiftRoutes);
-app.use('/api/discounts', discountRoutes);
+// =====================================================
+// API Routes - Inline requires to avoid undefined variables
+// =====================================================
+app.use('/api/auth', require('../src/routes/auth.routes'));
+app.use('/api/users', require('../src/routes/user.routes'));
+app.use('/api/branches', require('../src/routes/branch.routes'));
+app.use('/api/categories', require('../src/routes/category.routes'));
+app.use('/api/products', require('../src/routes/product.routes'));
+app.use('/api/inventory', require('../src/routes/inventory.routes'));
+app.use('/api/transfers', require('../src/routes/transfer.routes'));
+app.use('/api/suppliers', require('../src/routes/supplier.routes'));
+app.use('/api/purchases', require('../src/routes/purchase.routes'));
+app.use('/api/sales', require('../src/routes/sale.routes'));
+app.use('/api/pos', require('../src/routes/pos.routes'));
+app.use('/api/reports', require('../src/routes/report.routes'));
+app.use('/api/dashboard', require('../src/routes/dashboard.routes'));
+app.use('/api/returns', require('../src/routes/return.routes'));
+app.use('/api/expenses', require('../src/routes/expense.routes'));
+app.use('/api/shifts', require('../src/routes/shift.routes'));
+app.use('/api/discounts', require('../src/routes/discount.routes'));
 app.use('/api/installments', require('../src/routes/installment.routes'));
 app.use('/api/audit', require('../src/routes/audit.routes'));
 app.use('/api/preorders', require('../src/routes/preorder.routes'));
@@ -56,20 +50,10 @@ app.use('/api/commissions', require('../src/routes/commission.routes'));
 app.use('/api/analytics', require('../src/routes/analytics.routes'));
 app.use('/api/superadmin', require('../src/routes/superadmin.routes'));
 
-// Restaurant/Cafe specific routes (feature-gated)
+// Restaurant/Cafe specific routes
 app.use('/api/tables', require('../src/routes/table.routes'));
 app.use('/api/orders', require('../src/routes/order.routes'));
 app.use('/api/customers', require('../src/routes/customerRoutes'));
-
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Root
-app.get('/api', (req, res) => {
-    res.json({ message: 'Makhzan POS API', version: '1.0.0' });
-});
 
 // 404 handler
 app.use((req, res) => {
