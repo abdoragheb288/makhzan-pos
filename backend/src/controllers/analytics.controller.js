@@ -1,14 +1,24 @@
 const prisma = require('../config/database');
 
 // ==================== PRODUCT PROFITABILITY ====================
+/**
+ * Get Product Profitability with tenant isolation
+ * Calculates profit margins for products sold within the tenant
+ */
 const getProductProfitability = async (req, res, next) => {
     try {
         const { startDate, endDate, branchId, limit = 20 } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
-        if (branchId) where.sale = { branchId: parseInt(branchId) };
+        // Tenant isolation via sale -> branch
+        const where = {
+            sale: {
+                branch: { tenantId }
+            }
+        };
+        if (branchId) where.sale.branchId = parseInt(branchId);
         if (startDate || endDate) {
-            where.sale = { ...where.sale, createdAt: {} };
+            where.sale.createdAt = {};
             if (startDate) where.sale.createdAt.gte = new Date(startDate);
             if (endDate) where.sale.createdAt.lte = new Date(endDate);
         }
@@ -68,11 +78,19 @@ const getProductProfitability = async (req, res, next) => {
 };
 
 // ==================== PEAK HOURS ANALYTICS ====================
+/**
+ * Get Peak Hours with tenant isolation
+ * Analyzes sales patterns by hour of day for the tenant
+ */
 const getPeakHours = async (req, res, next) => {
     try {
         const { startDate, endDate, branchId } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
+        // Tenant isolation via branch
+        const where = {
+            branch: { tenantId }
+        };
         if (branchId) where.branchId = parseInt(branchId);
         if (startDate || endDate) {
             where.createdAt = {};
@@ -114,16 +132,25 @@ const getPeakHours = async (req, res, next) => {
 };
 
 // ==================== CENTRAL INVENTORY VIEW ====================
+/**
+ * Get Central Inventory with tenant isolation
+ * Shows inventory across all branches for the tenant
+ */
 const getCentralInventory = async (req, res, next) => {
     try {
         const { search, categoryId, lowStock } = req.query;
+        const tenantId = req.user.tenantId;
+
+        // Tenant isolation on products
+        const productWhere = {
+            tenantId,
+            ...(search && { name: { contains: search, mode: 'insensitive' } }),
+            ...(categoryId && { categoryId: parseInt(categoryId) }),
+        };
 
         // Get all products with their variants and inventory across branches
         const products = await prisma.product.findMany({
-            where: {
-                ...(search && { name: { contains: search } }),
-                ...(categoryId && { categoryId: parseInt(categoryId) }),
-            },
+            where: productWhere,
             include: {
                 category: { select: { name: true } },
                 variants: {
@@ -183,14 +210,21 @@ const getCentralInventory = async (req, res, next) => {
 };
 
 // ==================== SEASON ALERTS (OLD STOCK) ====================
+/**
+ * Get Season Alerts with tenant isolation
+ * Identifies stale products that haven't sold recently for the tenant
+ */
 const getSeasonAlerts = async (req, res, next) => {
     try {
         const { daysOld = 90 } = req.query;
+        const tenantId = req.user.tenantId;
+
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - parseInt(daysOld));
 
-        // Get products that haven't sold in X days
+        // Tenant isolation on products
         const products = await prisma.product.findMany({
+            where: { tenantId },
             include: {
                 variants: {
                     include: {
@@ -199,7 +233,12 @@ const getSeasonAlerts = async (req, res, next) => {
                             take: 1,
                             include: { sale: { select: { createdAt: true } } },
                         },
-                        inventory: { select: { quantity: true, branch: { select: { name: true } } } },
+                        inventory: {
+                            select: {
+                                quantity: true,
+                                branch: { select: { name: true } }
+                            }
+                        },
                     },
                 },
                 category: { select: { name: true } },

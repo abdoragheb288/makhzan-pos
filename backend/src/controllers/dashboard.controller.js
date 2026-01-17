@@ -63,13 +63,18 @@ const getStats = async (req, res, next) => {
             _count: true,
         });
 
-        // Products count
+        // Products count (filtered by tenant)
         const productsCount = await prisma.product.count({
-            where: { isActive: true },
+            where: {
+                isActive: true,
+                tenantId: req.user.tenantId
+            },
         });
 
-        // Low stock count
-        const inventoryWhere = {};
+        // Low stock count (filtered by tenant via branch)
+        const inventoryWhere = {
+            branch: { tenantId: req.user.tenantId }
+        };
         if (branchId && userRole !== 'ADMIN') {
             inventoryWhere.branchId = branchId;
         }
@@ -82,9 +87,12 @@ const getStats = async (req, res, next) => {
             (i) => i.quantity <= i.minStock
         ).length;
 
-        // Branches count
+        // Branches count (filtered by tenant)
         const branchesCount = await prisma.branch.count({
-            where: { isActive: true },
+            where: {
+                isActive: true,
+                tenantId: req.user.tenantId
+            },
         });
 
         // Pending transfers

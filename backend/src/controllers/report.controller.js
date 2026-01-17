@@ -1,10 +1,18 @@
 const prisma = require('../config/database');
 
+/**
+ * Get Sales Summary with tenant isolation
+ * All queries filter by tenantId from authenticated user
+ */
 const getSalesSummary = async (req, res, next) => {
     try {
         const { branchId, startDate, endDate, period = 'day' } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
+        // Base filter: tenant isolation via branch
+        const where = {
+            branch: { tenantId }
+        };
         if (branchId) where.branchId = parseInt(branchId);
 
         const now = new Date();
@@ -57,15 +65,21 @@ const getSalesSummary = async (req, res, next) => {
     }
 };
 
+/**
+ * Get Sales by Period with tenant isolation
+ */
 const getSalesByPeriod = async (req, res, next) => {
     try {
         const { branchId, period = 'daily', days = 30 } = req.query;
+        const tenantId = req.user.tenantId;
 
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - parseInt(days));
 
+        // Tenant isolation via branch
         const where = {
             createdAt: { gte: startDate },
+            branch: { tenantId }
         };
         if (branchId) where.branchId = parseInt(branchId);
 
@@ -108,14 +122,23 @@ const getSalesByPeriod = async (req, res, next) => {
     }
 };
 
+/**
+ * Get Top Products with tenant isolation
+ */
 const getTopProducts = async (req, res, next) => {
     try {
         const { branchId, limit = 10, startDate, endDate } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
-        if (branchId) where.sale = { branchId: parseInt(branchId) };
+        // Tenant isolation via sale -> branch
+        const where = {
+            sale: {
+                branch: { tenantId }
+            }
+        };
+        if (branchId) where.sale.branchId = parseInt(branchId);
         if (startDate || endDate) {
-            where.sale = { ...where.sale, createdAt: {} };
+            where.sale.createdAt = {};
             if (startDate) where.sale.createdAt.gte = new Date(startDate);
             if (endDate) where.sale.createdAt.lte = new Date(endDate);
         }
@@ -158,15 +181,19 @@ const getTopProducts = async (req, res, next) => {
     }
 };
 
+/**
+ * Get Inventory Report with tenant isolation
+ */
 const getInventoryReport = async (req, res, next) => {
     try {
         const { branchId, categoryId, lowStock } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
+        // Tenant isolation via branch
+        const where = {
+            branch: { tenantId }
+        };
         if (branchId) where.branchId = parseInt(branchId);
-        if (lowStock === 'true') {
-            // Filter after fetch
-        }
 
         const inventory = await prisma.inventory.findMany({
             where,
@@ -211,26 +238,31 @@ const getInventoryReport = async (req, res, next) => {
     }
 };
 
+/**
+ * Get Branch Performance with tenant isolation
+ */
 const getBranchPerformance = async (req, res, next) => {
     try {
         const { startDate, endDate } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
+        const saleWhere = {};
         if (startDate || endDate) {
-            where.createdAt = {};
-            if (startDate) where.createdAt.gte = new Date(startDate);
-            if (endDate) where.createdAt.lte = new Date(endDate);
+            saleWhere.createdAt = {};
+            if (startDate) saleWhere.createdAt.gte = new Date(startDate);
+            if (endDate) saleWhere.createdAt.lte = new Date(endDate);
         }
 
+        // Only get branches for current tenant
         const branches = await prisma.branch.findMany({
-            where: { isActive: true },
+            where: { isActive: true, tenantId },
             select: { id: true, name: true, isWarehouse: true },
         });
 
         const performance = await Promise.all(
             branches.map(async (branch) => {
                 const sales = await prisma.sale.aggregate({
-                    where: { ...where, branchId: branch.id },
+                    where: { ...saleWhere, branchId: branch.id },
                     _sum: { total: true },
                     _count: true,
                 });
@@ -252,22 +284,27 @@ const getBranchPerformance = async (req, res, next) => {
     }
 };
 
+/**
+ * Get Supplier Report with tenant isolation
+ */
 const getSupplierReport = async (req, res, next) => {
     try {
         const { startDate, endDate } = req.query;
+        const tenantId = req.user.tenantId;
 
-        const where = {};
+        const purchaseWhere = {};
         if (startDate || endDate) {
-            where.createdAt = {};
-            if (startDate) where.createdAt.gte = new Date(startDate);
-            if (endDate) where.createdAt.lte = new Date(endDate);
+            purchaseWhere.createdAt = {};
+            if (startDate) purchaseWhere.createdAt.gte = new Date(startDate);
+            if (endDate) purchaseWhere.createdAt.lte = new Date(endDate);
         }
 
+        // Only get suppliers for current tenant
         const suppliers = await prisma.supplier.findMany({
-            where: { isActive: true },
+            where: { isActive: true, tenantId },
             include: {
                 purchaseOrders: {
-                    where,
+                    where: purchaseWhere,
                     select: { total: true, status: true },
                 },
             },
